@@ -64,6 +64,7 @@ admin.post('/auth/login', async (c) => {
       parsed.data.password,
       c.req.header('User-Agent'),
       trusted,
+      new URL(c.req.url).protocol === 'https:',
     )
     c.header('Set-Cookie', result.cookie)
     return jsonOk(c, { expiresAt: result.expiresAt })

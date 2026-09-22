@@ -16,6 +16,7 @@ export async function login(
   password: string,
   userAgent: string | undefined,
   trusted: boolean,
+  isSecureRequest: boolean,
 ): Promise<{ sessionId: string; expiresAt: string; cookie: string }> {
   const [userOk, passOk] = await Promise.all([
     verifyAdminUsername(env, username),
@@ -39,7 +40,8 @@ export async function login(
   // cookie 仅使用安全字符，避免解析歧义
   const payload = `${sessionId}.${expMs}`
   const sig = await hmacSign(payload, env.SESSION_SECRET)
-  const secure = env.SITE_URL?.startsWith('https') ? '; Secure' : ''
+  // Secure 标志依据实际请求协议判定，不依赖可配错的站点 URL
+  const secure = isSecureRequest ? '; Secure' : ''
   const cookie = `${COOKIE_NAME}=${payload}.${sig}; Path=/; HttpOnly${secure}; SameSite=Lax; Max-Age=${Math.floor(ttl / 1000)}`
   return { sessionId, expiresAt, cookie }
 }

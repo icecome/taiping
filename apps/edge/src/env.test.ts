@@ -7,10 +7,6 @@ function makeEnv(overrides: Partial<Env> = {}): Env {
     SESSION_SECRET: 'a-sufficiently-long-random-session-secret',
     ADMIN_USERNAME: 'admin',
     ADMIN_PASSWORD: 'a-strong-admin-password',
-    SITE_URL: 'https://example.com',
-    SITE_TITLE: '站点',
-    SITE_AUTHOR: '作者',
-    SITE_DESCRIPTION: '描述',
     ...overrides,
   } as Env
 }

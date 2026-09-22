@@ -12,10 +12,6 @@ export interface Env {
   GITHUB_MIRROR_REPO?: string
   MAIL_API_URL?: string
   MAIL_API_KEY?: string
-  SITE_URL: string
-  SITE_TITLE: string
-  SITE_AUTHOR: string
-  SITE_DESCRIPTION: string
 }
 
 export const REQUIRED_SECRETS = [

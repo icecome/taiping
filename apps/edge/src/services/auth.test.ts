@@ -38,29 +38,40 @@ const env = {
   SESSION_SECRET: 'dev-session-secret-please-change',
   ADMIN_USERNAME: 'admin',
   ADMIN_PASSWORD: 'dev-admin-pass',
-  SITE_URL: 'http://127.0.0.1:8787',
 } as Env
 
 describe('session auth', () => {
   it('login issues cookie that validateSession accepts', async () => {
     const db = createMockDb()
-    const result = await login(db, env, 'admin', 'dev-admin-pass', 'test-agent', true)
+    const result = await login(db, env, 'admin', 'dev-admin-pass', 'test-agent', true, false)
     expect(result.cookie.startsWith('tp_session=')).toBe(true)
     const cookieHeader = result.cookie.split(';')[0]
     const sessionId = await validateSession(db, env, cookieHeader)
     expect(sessionId).toBe(result.sessionId)
   })
 
+  it('marks cookie Secure when request is https', async () => {
+    const db = createMockDb()
+    const result = await login(db, env, 'admin', 'dev-admin-pass', undefined, false, true)
+    expect(result.cookie).toContain('; Secure')
+  })
+
+  it('omits Secure when request is plain http', async () => {
+    const db = createMockDb()
+    const result = await login(db, env, 'admin', 'dev-admin-pass', undefined, false, false)
+    expect(result.cookie).not.toContain('; Secure')
+  })
+
   it('rejects invalid credentials', async () => {
     const db = createMockDb()
-    await expect(login(db, env, 'admin', 'wrong', undefined, false)).rejects.toMatchObject({
+    await expect(login(db, env, 'admin', 'wrong', undefined, false, false)).rejects.toMatchObject({
       code: 'AUTH_INVALID',
     })
   })
 
   it('rejects tampered cookie', async () => {
     const db = createMockDb()
-    const result = await login(db, env, 'admin', 'dev-admin-pass', undefined, true)
+    const result = await login(db, env, 'admin', 'dev-admin-pass', undefined, true, false)
     const cookieHeader = (result.cookie.split(';')[0] ?? '').replace(/.$/, 'x')
     const sessionId = await validateSession(db, env, cookieHeader)
     expect(sessionId).toBeNull()

@@ -2,7 +2,14 @@
 SESSION_SECRET=please-change-me-to-a-long-random-string
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=change-me
+
+# 可选：Git 镜像导出
 GITHUB_TOKEN=
 GITHUB_MIRROR_REPO=
+
+# 可选：邮件通知（尚未接入实现）
 MAIL_API_URL=
 MAIL_API_KEY=
+
+# 站点信息（标题/作者/描述/地址）不在此配置，统一在后台「设置」中管理。
+

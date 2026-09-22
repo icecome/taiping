@@ -26,6 +26,11 @@ import type { SiteSettings } from '@taiping/content-model/settings'
 
 const publicRoutes = new Hono<AppEnv>()
 
+/** 站点地址未在设置中配置时的兜底：取当前请求的 origin */
+function requestOrigin(c: AppContext): string {
+  return new URL(c.req.url).origin
+}
+
 function toCard(post: Post, meta: { categories: PostCardData['categories']; tags: PostCardData['tags'] }): PostCardData {
   const derived = buildExcerptAndReading(post)
   return {
@@ -281,7 +286,8 @@ publicRoutes.get('/rss.xml', async (c) => {
   const all = await getPublishedPosts(c.env.DB, 'post')
   // 加密文章不下发：其摘要可能由正文派生，与 search.ts 的可见性判据保持一致
   const posts = all.filter((post) => !post.encrypt)
-  const siteUrl = settings.url || c.env.SITE_URL
+  // 站点地址优先取设置项；未配置时回落到请求自身 origin
+  const siteUrl = settings.url || requestOrigin(c)
   const items = posts
     .slice(0, 20)
     .map((post) => {
@@ -311,7 +317,7 @@ ${items}
 
 publicRoutes.get('/sitemap.xml', async (c) => {
   const settings = await getSettings(c.env.DB)
-  const siteUrl = (settings.url || c.env.SITE_URL).replace(/\/$/, '')
+  const siteUrl = (settings.url || requestOrigin(c)).replace(/\/$/, '')
   const posts = await getPublishedPosts(c.env.DB, 'post')
   const pages = await getPublishedPosts(c.env.DB, 'page')
   const urls = [

@@ -813,9 +813,10 @@ export interface Env {
   MEDIA: R2Bucket
   SESSION_SECRET: string
   GITHUB_TOKEN: string
-  SITE_URL: string
 }
 ```
+
+> 站点信息（标题/作者/描述/地址）不属于环境变量，统一由后台「设置」管理并存储于 D1 的 `settings` 表。
 
 ---
 
