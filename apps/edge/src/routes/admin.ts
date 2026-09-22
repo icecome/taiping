@@ -5,12 +5,31 @@ import { commentListQuerySchema, commentModerateSchema } from '@taiping/content-
 import { momentInputSchema, momentListQuerySchema } from '@taiping/content-model/moment'
 import { siteSettingsSchema } from '@taiping/content-model/settings'
 import { termInputSchema, termUpdateSchema } from '@taiping/content-model/term'
-import { loginSchema, changePasswordSchema } from '@taiping/content-model/auth'
+import {
+  loginSchema,
+  changePasswordSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  adminEmailSchema,
+} from '@taiping/content-model/auth'
 import { renderMarkdownSafe } from '@taiping/renderer/markdown'
 import type { AppEnv } from '../lib/http'
 import { jsonFail, jsonOk, zodDetails } from '../lib/http'
 import { requireAuth } from '../middleware/auth'
-import { COOKIE_NAME, login, logout, getAdmin, changeAdminPassword } from '../services/auth'
+import {
+  COOKIE_NAME,
+  login,
+  logout,
+  getAdmin,
+  changeAdminPassword,
+  createPasswordResetToken,
+  inspectResetToken,
+  resetPasswordWithToken,
+  getAdminEmail,
+  setAdminEmail,
+} from '../services/auth'
+import { sendPasswordResetEmail } from '../lib/mail'
+import { adminPath } from '../env'
 import {
   countPosts,
   createPost,
@@ -56,6 +75,7 @@ admin.post('/auth/login', async (c) => {
     return jsonFail(c, 'VALIDATION_FAILED', '参数不合法', zodDetails(parsed.error))
   }
   const trusted = body?.trusted === true
+  const clientIp = c.req.header('CF-Connecting-IP') ?? ''
   try {
     const result = await login(
       c.env.DB,
@@ -65,6 +85,7 @@ admin.post('/auth/login', async (c) => {
       c.req.header('User-Agent'),
       trusted,
       new URL(c.req.url).protocol === 'https:',
+      clientIp,
     )
     c.header('Set-Cookie', result.cookie)
     return jsonOk(c, { expiresAt: result.expiresAt })
@@ -72,6 +93,12 @@ admin.post('/auth/login', async (c) => {
     const code = (err as { code?: string }).code
     if (code === 'AUTH_INVALID') {
       return jsonFail(c, 'AUTH_INVALID', '账号或密码错误')
+    }
+    if (code === 'RATE_LIMITED') {
+      return jsonFail(c, 'RATE_LIMITED', '尝试过于频繁，请稍后再试')
+    }
+    if (code === 'ACCOUNT_LOCKED') {
+      return jsonFail(c, 'ACCOUNT_LOCKED', '账号已锁定，请通过邮件重置口令')
     }
     throw err
   }
@@ -110,6 +137,78 @@ admin.post('/auth/password', async (c) => {
   // 所有会话已失效，清除当前 Cookie 促使重新登录
   c.header('Set-Cookie', `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`)
   return jsonOk(c, { changed: true })
+})
+
+// --- 口令重置（公开端点，见 middleware/auth.ts 的白名单）---
+
+admin.post('/auth/forgot-password', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  const parsed = forgotPasswordSchema.safeParse(body)
+  if (!parsed.success) {
+    return jsonFail(c, 'VALIDATION_FAILED', '参数不合法', zodDetails(parsed.error))
+  }
+
+  // 无论账号是否存在、邮箱是否配置，都返回相同结果，避免用户名枚举
+  const created = await createPasswordResetToken(c.env.DB, c.env)
+  if (created) {
+    const origin = new URL(c.req.url).origin
+    const path = adminPath(c.env)
+    const resetUrl = `${origin}${path}/#/reset-password?token=${created.token}`
+    const settings = await getSettings(c.env.DB)
+    // 不阻塞响应；邮件失败已在 mail 层记录日志
+    c.executionCtx.waitUntil(
+      sendPasswordResetEmail(
+        c.env,
+        created.email,
+        resetUrl,
+        settings.title || '博客后台',
+        created.ttlMinutes,
+      ),
+    )
+  }
+  return jsonOk(c, { submitted: true })
+})
+
+admin.get('/auth/reset-password', async (c) => {
+  const token = c.req.query('token') ?? ''
+  const state = await inspectResetToken(c.env.DB, token)
+  return jsonOk(c, { state })
+})
+
+admin.post('/auth/reset-password', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  const parsed = resetPasswordSchema.safeParse(body)
+  if (!parsed.success) {
+    return jsonFail(c, 'VALIDATION_FAILED', '参数不合法', zodDetails(parsed.error))
+  }
+  try {
+    await resetPasswordWithToken(c.env.DB, parsed.data.token, parsed.data.newPassword)
+  } catch (err) {
+    const code = (err as { code?: string }).code
+    if (code === 'TOKEN_INVALID' || code === 'TOKEN_EXPIRED' || code === 'TOKEN_USED') {
+      return jsonFail(c, code as 'TOKEN_INVALID', '重置链接无效或已失效，请重新申请')
+    }
+    throw err
+  }
+  c.header('Set-Cookie', `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`)
+  return jsonOk(c, { reset: true })
+})
+
+// --- 恢复邮箱（需登录）---
+
+admin.get('/auth/email', async (c) => {
+  const email = await getAdminEmail(c.env.DB)
+  return jsonOk(c, { email })
+})
+
+admin.patch('/auth/email', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  const parsed = adminEmailSchema.safeParse(body)
+  if (!parsed.success) {
+    return jsonFail(c, 'VALIDATION_FAILED', '邮箱格式不正确', zodDetails(parsed.error))
+  }
+  await setAdminEmail(c.env.DB, parsed.data.email)
+  return jsonOk(c, { email: parsed.data.email.trim() })
 })
 
 // --- dashboard ---

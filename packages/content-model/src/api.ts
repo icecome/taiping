@@ -3,6 +3,10 @@ import { z } from 'zod'
 export const apiErrorCodeSchema = z.enum([
   'AUTH_REQUIRED',
   'AUTH_INVALID',
+  'ACCOUNT_LOCKED',
+  'TOKEN_INVALID',
+  'TOKEN_EXPIRED',
+  'TOKEN_USED',
   'FORBIDDEN',
   'NOT_FOUND',
   'VALIDATION_FAILED',
@@ -44,6 +48,10 @@ export function fail(code: ApiErrorCode, message: string, details?: unknown): Ap
 export const httpStatusByErrorCode: Record<ApiErrorCode, number> = {
   AUTH_REQUIRED: 401,
   AUTH_INVALID: 401,
+  ACCOUNT_LOCKED: 423,
+  TOKEN_INVALID: 400,
+  TOKEN_EXPIRED: 410,
+  TOKEN_USED: 410,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   VALIDATION_FAILED: 422,

@@ -28,6 +28,17 @@ export const api = {
       newPassword: string
       confirmPassword: string
     }) => http.post<{ changed: true }>('/api/admin/auth/password', input),
+    forgotPassword: (username: string) =>
+      http.post<{ submitted: true }>('/api/admin/auth/forgot-password', { username }),
+    inspectResetToken: (token: string) =>
+      http.get<{ state: 'valid' | 'invalid' | 'expired' | 'used' }>(
+        `/api/admin/auth/reset-password?token=${encodeURIComponent(token)}`,
+      ),
+    resetPassword: (input: { token: string; newPassword: string; confirmPassword: string }) =>
+      http.post<{ reset: true }>('/api/admin/auth/reset-password', input),
+    getEmail: () => http.get<{ email: string }>('/api/admin/auth/email'),
+    setEmail: (email: string) =>
+      http.patch<{ email: string }>('/api/admin/auth/email', { email }),
   },
   overview: () => http.get<Overview>('/api/admin/overview'),
   posts: {

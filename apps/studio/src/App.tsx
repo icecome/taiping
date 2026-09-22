@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { LoginPage } from './pages/LoginPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { adminRoutes } from './features/registry'
 
@@ -22,6 +23,7 @@ export function App() {
         <HashRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route element={<AppShell />}>
               {adminRoutes.map((r) => (
                 <Route key={r.path} path={r.path} element={r.element} />

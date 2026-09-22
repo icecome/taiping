@@ -23,6 +23,16 @@ export class HttpError extends Error {
 }
 
 /**
+ * 跳转到登录页。
+ * 后台入口路径可由服务端 ADMIN_PATH 配置，故不能硬编码 /admin，
+ * 改从当前 URL 推导基路径（hash 路由下 location.pathname 即入口）。
+ */
+export function goToLogin(): void {
+  const base = window.location.pathname.replace(/\/+$/, '')
+  window.location.href = `${base}/#/login`
+}
+
+/**
  * 统一 HTTP 客户端：全部后台请求必须经此，禁止业务侧另写 fetch 封装。
  */
 export async function request<T>(
@@ -54,7 +64,7 @@ export async function request<T>(
   if (res.status === 401) {
     // 统一拦截：清空缓存由调用方 QueryClient 处理，这里跳转登录
     if (!path.includes('/auth/login')) {
-      window.location.href = '/admin/#/login'
+      goToLogin()
     }
   }
 
@@ -126,7 +136,7 @@ export function postWithProgress<T>(
         return
       }
       if (xhr.status === 401 && !path.includes('/auth/login')) {
-        window.location.href = '/admin/#/login'
+        goToLogin()
       }
       if (!json.ok) {
         reject(new HttpError(xhr.status, json.error))

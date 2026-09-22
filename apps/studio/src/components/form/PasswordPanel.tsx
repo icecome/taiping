@@ -1,15 +1,70 @@
-import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
-import { KeyRound } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { KeyRound, Mail } from 'lucide-react'
 import { api } from '../../api/endpoints'
-import { HttpError } from '../../api/client'
+import { HttpError, goToLogin } from '../../api/client'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Panel } from '../ui/Panel'
+import { toast } from '../../lib/toast'
 
 const MIN_LENGTH = 8
 
-export function PasswordPanel() {
+/** 恢复邮箱：忘记口令时接收重置链接 */
+function RecoveryEmailPanel() {
+  const queryClient = useQueryClient()
+  const [email, setEmail] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const current = useQuery({
+    queryKey: ['admin-email'],
+    queryFn: () => api.auth.getEmail(),
+  })
+
+  useEffect(() => {
+    if (current.data) setEmail(current.data.email)
+  }, [current.data])
+
+  const save = useMutation({
+    mutationFn: () => api.auth.setEmail(email.trim()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-email'] })
+      setError(null)
+      toast('恢复邮箱已保存')
+    },
+    onError: (err) => {
+      setError(err instanceof HttpError ? err.message : '保存失败')
+    },
+  })
+
+  return (
+    <Panel title="恢复邮箱" description="忘记口令时，重置链接将发送至该邮箱">
+      <div className="space-y-3 max-w-sm">
+        <label className="block text-sm">
+          <span className="text-muted-foreground">邮箱地址</span>
+          <Input
+            type="email"
+            className="mt-1"
+            placeholder="you@example.com"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <Button variant="primary" disabled={save.isPending} onClick={() => save.mutate()}>
+          <Mail size={14} className="mr-1.5" />
+          {save.isPending ? '保存中…' : '保存邮箱'}
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          未配置邮箱时，忘记口令只能通过数据库手动重置。
+        </p>
+      </div>
+    </Panel>
+  )
+}
+
+function ChangePasswordPanel() {
   const [currentPassword, setCurrent] = useState('')
   const [newPassword, setNew] = useState('')
   const [confirmPassword, setConfirm] = useState('')
@@ -19,7 +74,7 @@ export function PasswordPanel() {
     mutationFn: () => api.auth.changePassword({ currentPassword, newPassword, confirmPassword }),
     onSuccess: () => {
       // 服务端已清空全部会话，回到登录页重新认证
-      window.location.href = '/admin/#/login'
+      goToLogin()
     },
     onError: (err) => {
       setError(err instanceof HttpError ? err.message : '修改失败')
@@ -87,5 +142,14 @@ export function PasswordPanel() {
         </Button>
       </div>
     </Panel>
+  )
+}
+
+export function PasswordPanel() {
+  return (
+    <div className="space-y-4">
+      <ChangePasswordPanel />
+      <RecoveryEmailPanel />
+    </div>
   )
 }

@@ -80,6 +80,7 @@ jobs:
       # wrangler deploy 会清除配置文件中不存在的绑定（含 secrets），故部署后重新注入。
       # 账号口令已入库（admins 表），不再需要长期持有：
       #   ADMIN_USERNAME / ADMIN_PASSWORD 仅用于首次播种，播种后可不配。
+      #   RESEND_* 用于口令重置邮件，未配置时相关流程降级为跳过发信。
       - name: 注入 Worker 密钥
         working-directory: apps/edge
         env:
@@ -88,6 +89,9 @@ jobs:
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM: ${{ vars.RESEND_FROM }}
+          ADMIN_PATH: ${{ vars.ADMIN_PATH }}
         run: |
           if [ -z "$SESSION_SECRET" ]; then
             echo "::error::缺少仓库 Secret: SESSION_SECRET"
@@ -95,19 +99,21 @@ jobs:
             exit 1
           fi
           node -e '
-            const payload = { SESSION_SECRET: process.env.SESSION_SECRET };
+            const p = { SESSION_SECRET: process.env.SESSION_SECRET };
             // 播种用：库中已有账号时不会再读取，故仅在配置了才注入
-            if (process.env.ADMIN_USERNAME) payload.ADMIN_USERNAME = process.env.ADMIN_USERNAME;
-            if (process.env.ADMIN_PASSWORD) payload.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-            process.stdout.write(JSON.stringify(payload));
+            if (process.env.ADMIN_USERNAME) p.ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+            if (process.env.ADMIN_PASSWORD) p.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+            if (process.env.RESEND_API_KEY) p.RESEND_API_KEY = process.env.RESEND_API_KEY;
+            if (process.env.RESEND_FROM) p.RESEND_FROM = process.env.RESEND_FROM;
+            if (process.env.ADMIN_PATH) p.ADMIN_PATH = process.env.ADMIN_PATH;
+            process.stdout.write(JSON.stringify(p));
           ' > /tmp/secrets.json
           pnpm exec wrangler secret bulk /tmp/secrets.json
           rm -f /tmp/secrets.json
-          if [ -z "$ADMIN_PASSWORD" ]; then
-            echo "已注入 SESSION_SECRET。未配置 ADMIN_*，首次部署请先手动播种管理员账号。"
-          else
-            echo "已注入 SESSION_SECRET 与播种用 ADMIN_*。"
-          fi
+          echo "已注入：SESSION_SECRET"
+          if [ -n "$ADMIN_PASSWORD" ]; then echo "  含播种用 ADMIN_*"; fi
+          if [ -n "$RESEND_API_KEY" ]; then echo "  含 RESEND_*（口令重置邮件可用）"; fi
+          if [ -n "$ADMIN_PATH" ]; then echo "  含 ADMIN_PATH=$ADMIN_PATH"; fi
 
       - name: 部署失败时输出诊断
         if: failure()

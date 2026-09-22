@@ -10,8 +10,11 @@ export interface Env {
   ADMIN_PASSWORD: string
   GITHUB_TOKEN?: string
   GITHUB_MIRROR_REPO?: string
-  MAIL_API_URL?: string
-  MAIL_API_KEY?: string
+  /** 邮件发送（Resend）：未配置时跳过发信，相关流程降级而非失败 */
+  RESEND_API_KEY?: string
+  RESEND_FROM?: string
+  /** 后台入口路径，默认 /admin */
+  ADMIN_PATH?: string
 }
 
 export const REQUIRED_SECRETS = [
@@ -19,6 +22,17 @@ export const REQUIRED_SECRETS = [
   'ADMIN_USERNAME',
   'ADMIN_PASSWORD',
 ] as const
+
+/** 后台入口路径：规范化前后斜杠，非法值回落默认 */
+export function adminPath(env: { ADMIN_PATH?: string }): string {
+  const raw = (env.ADMIN_PATH ?? '').trim()
+  if (!raw || raw === '/') return '/admin'
+  const trimmed = raw.replace(/^\/+|\/+$/g, '')
+  // 仅允许路径安全字符，避免注入或匹配到 API 前缀
+  if (!/^[a-zA-Z0-9._~/-]+$/.test(trimmed)) return '/admin'
+  if (trimmed.startsWith('api/') || trimmed === 'api') return '/admin'
+  return `/${trimmed}`
+}
 
 /** 示例文件中的占位值，误用于生产会使会话签名可被预测 */
 const PLACEHOLDER_SECRETS = [

@@ -10,6 +10,9 @@ import type { AppEnv } from '../lib/http'
 const AUTH_PUBLIC_PATHS = new Set([
   '/api/admin/auth/login',
   '/auth/login',
+  // 口令重置相关：申请重置与凭令牌重置都需在未登录状态下可用
+  '/api/admin/auth/forgot-password',
+  '/api/admin/auth/reset-password',
 ])
 
 export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {

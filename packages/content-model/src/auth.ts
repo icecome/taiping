@@ -43,3 +43,28 @@ export const changePasswordSchema = z
     path: ['newPassword'],
   })
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
+
+/** 申请口令重置（仅需用户名，响应不区分账号是否存在） */
+export const forgotPasswordSchema = z.object({
+  username: z.string().min(1).max(64),
+})
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>
+
+/** 使用重置令牌设置新口令 */
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(16).max(128),
+    newPassword: z.string().min(8).max(128),
+    confirmPassword: z.string().min(1).max(128),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, {
+    message: '两次输入的新口令不一致',
+    path: ['confirmPassword'],
+  })
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
+
+/** 恢复邮箱 */
+export const adminEmailSchema = z.object({
+  email: z.string().email('请输入合法的邮箱地址').max(160),
+})
+export type AdminEmailInput = z.infer<typeof adminEmailSchema>
