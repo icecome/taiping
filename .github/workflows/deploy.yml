@@ -73,8 +73,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler deploy 2>&1 | tee /tmp/deploy.log
-        continue-on-error: false
+        run: |
+          set -o pipefail
+          pnpm exec wrangler deploy 2>&1 | tee /tmp/deploy.log
 
       - name: 部署失败时输出诊断
         if: failure()
