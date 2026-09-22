@@ -1,0 +1,165 @@
+{
+  "skillProvenance": {
+    "version": null,
+    "version_source": "unknown",
+    "read_status": "missing"
+  },
+  "project": {
+    "operation": "create",
+    "resolvedLane": "complex_html_page",
+    "deviceType": "desktop",
+    "styleDefinitionBrief": "Minimal professional admin console, ink monochrome #2E2E2E primary, Inter+PingFang SC typography, restrained 4-8px radius, border-led surfaces, Linear/Vercel aesthetic",
+    "designRead": "admin console / blog admin / professional minimal / medium density / avoid generic card clutter",
+    "designDials": {
+      "layoutVariance": 2,
+      "motionIntensity": 1,
+      "visualDensity": 3
+    },
+    "designSource": {
+      "operatingMode": "free-explore",
+      "cssFilePath": "colors_and_type.css",
+      "brandPrefix": null
+    },
+    "styleConstraints": {
+      "radiusMax": 8,
+      "staticShadowAlphaMax": 0.05
+    },
+    "shapeSystem": {
+      "radiusSm": "4px",
+      "radiusMd": "6px",
+      "radiusLg": "8px",
+      "radiusFull": "9999px"
+    },
+    "surfaceAndDepth": {
+      "staticSurfaces": "border-led, no shadow or shadow alpha <= 0.05",
+      "floatingLayers": "shadow-floating token for modal/popover/dropdown/drawer/tooltip/toast/menu"
+    },
+    "sharedProjectShellContract": {
+      "sidebar": {
+        "width": "240px",
+        "bg": "var(--card)",
+        "borderRight": "1px solid var(--border)",
+        "groups": [
+          { "key": "contents", "label": "内容" },
+          { "key": "interface", "label": "界面" },
+          { "key": "system", "label": "系统" }
+        ]
+      },
+      "contentArea": {
+        "maxWidth": "1024px",
+        "padding": "24px",
+        "bg": "var(--background)"
+      },
+      "radiusScale": {
+        "sm": "4px",
+        "md": "6px",
+        "lg": "8px"
+      },
+      "surfaceDepthModel": "border-led static; floating layers use shadow-floating"
+    },
+    "continuityAnchors": [
+      "ink monochrome primary #2E2E2E with neutral tint scale",
+      "240px sidebar + 1024px max-width content area shell",
+      "border-led cards/panels, no decorative shadows on static surfaces",
+      "system font sans-serif stack: Inter, PingFang SC, Microsoft YaHei",
+      "restrained radius: 4px inputs/buttons, 6px nav items, 8px cards"
+    ],
+    "cssPreflightEvidence": {
+      "command": "apply-html-head-contract.mjs",
+      "exitCode": 0,
+      "generatedFile": ".preflight/preflight.html",
+      "hasThemeVars": true,
+      "hasSemanticTokenFallback": true,
+      "hasTailwindCDN": true,
+      "hasThemeInline": true,
+      "htmlClass": "light"
+    },
+    "pages": [
+      {
+        "id": "page-design-spec",
+        "title": "设计规范文档",
+        "htmlSrc": "pages/design-spec.html",
+        "visualNorthStar": "long-form specification document with section navigation, typography hierarchy, color palette display, component showcase, and layout diagrams",
+        "compositionPattern": "document-scroll with sticky section nav",
+        "continuityAnchors": [
+          "ink monochrome primary #2E2E2E with neutral tint scale",
+          "system font sans-serif stack: Inter, PingFang SC, Microsoft YaHei",
+          "restrained radius: 4px inputs/buttons, 6px nav items, 8px cards"
+        ]
+      },
+      {
+        "id": "page-dashboard",
+        "title": "仪表盘",
+        "htmlSrc": "pages/dashboard.html",
+        "visualNorthStar": "overview dashboard with stat cards grid, recent activity feed, and mirror queue status panel",
+        "compositionPattern": "stat-grid + activity-panel",
+        "continuityAnchors": [
+          "240px sidebar + 1024px max-width content area shell",
+          "border-led cards/panels, no decorative shadows on static surfaces",
+          "ink monochrome primary #2E2E2E with neutral tint scale"
+        ]
+      },
+      {
+        "id": "page-post-list",
+        "title": "文章管理",
+        "htmlSrc": "pages/post-list.html",
+        "visualNorthStar": "article list with search/filter bar, data table with status badges, batch selection, row actions, and pagination",
+        "compositionPattern": "filter-bar + data-table + pagination",
+        "continuityAnchors": [
+          "240px sidebar + 1024px max-width content area shell",
+          "border-led cards/panels, no decorative shadows on static surfaces",
+          "restrained radius: 4px inputs/buttons"
+        ]
+      },
+      {
+        "id": "page-post-edit",
+        "title": "文章编辑",
+        "htmlSrc": "pages/post-edit.html",
+        "visualNorthStar": "article editor with title input, markdown editor area, collapsible metadata sidebar, and save/publish action bar",
+        "compositionPattern": "editor + metadata-sidebar",
+        "continuityAnchors": [
+          "240px sidebar + 1024px max-width content area shell",
+          "system font sans-serif stack: Inter, PingFang SC, Microsoft YaHei",
+          "border-led cards/panels"
+        ]
+      },
+      {
+        "id": "page-comment-audit",
+        "title": "评论管理",
+        "htmlSrc": "pages/comment-audit.html",
+        "visualNorthStar": "comment moderation queue with status tabs, comment cards showing author/content/metadata, and quick action buttons",
+        "compositionPattern": "status-tabs + comment-list + actions",
+        "continuityAnchors": [
+          "240px sidebar + 1024px max-width content area shell",
+          "border-led cards/panels",
+          "restrained radius: 4px inputs/buttons"
+        ]
+      },
+      {
+        "id": "page-taxonomy",
+        "title": "分类标签",
+        "htmlSrc": "pages/taxonomy.html",
+        "visualNorthStar": "taxonomy management with category/tag tab switcher, add form, and sortable list with drag handles and row actions",
+        "compositionPattern": "tab-switcher + add-form + sortable-list",
+        "continuityAnchors": [
+          "240px sidebar + 1024px max-width content area shell",
+          "border-led cards/panels",
+          "restrained radius: 4px inputs/buttons"
+        ]
+      }
+    ]
+  },
+  "contextRequirementsLoaded": [
+    { "path": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md", "readStatus": "loaded", "bodyRead": true },
+    { "path": "intent-workflows/intent-project-complex-build/start-complex-project-build.md", "readStatus": "loaded", "bodyRead": true },
+    { "path": "intent-workflows/intent-project-complex-build/00-requirement-and-style-intake.md", "readStatus": "loaded", "bodyRead": true },
+    { "path": "shared-runtime/design-artifact-formats/design-project-file-format.md", "readStatus": "loaded", "bodyRead": true }
+  ],
+  "validationRunDiscipline": {
+    "mode": "standard",
+    "expectedPages": 6
+  },
+  "lowValueCallWatchdog": {
+    "noProgressNextAction": "proceed to page dispatch"
+  }
+}

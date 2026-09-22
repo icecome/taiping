@@ -1,0 +1,288 @@
+/* ============================================================
+ * zhuosu 代码块 — 暖调浅色主题（对齐 zhuosu 拙素 Warm Palette）
+ * 结构：标题栏（交通灯 + 语言标识 + 复制按钮）+ 浅色代码区
+ * 特性：行号显示、无垂直滚动条、底部水平滚动条美化
+ * 说明：容器色板取自主题亮色变量（米白/暖灰），语法色覆盖
+ *       Chroma Monokai 深色 inline 色为浅色可读配色。
+ * ============================================================ */
+
+/* ====== 代码块专用变量（全局覆盖，对齐主题 Warm Palette） ====== */
+:root {
+    --code-block-bg: 236, 235, 232;          /* 代码区背景 #ecebe8（= --color-code-bg） */
+    --code-block-bar: 240, 239, 235;         /* 标题栏背景 #f0efeb（暖灰，略亮于代码区） */
+    --code-block-border: 221, 220, 216;      /* 边框 #dddcd8（= --color-line） */
+    --code-block-text: 51, 51, 47;           /* 前景文字 #33332f（= --color-ink） */
+    --code-block-text-dim: 111, 109, 101;    /* 弱化文字 #6f6d65（= --color-ink-2） */
+    --code-block-line-num: 158, 156, 148;    /* 行号暖灰 #9e9c94 */
+    --code-traffic-red: 255, 95, 86;         /* 交通灯红 #ff5f56 */
+    --code-traffic-yellow: 255, 189, 46;     /* 交通灯黄 #ffbd2e */
+    --code-traffic-green: 39, 201, 63;       /* 交通灯绿 #27c93f */
+}
+
+/* ====== 代码块容器 ====== */
+.code-toolbar-wrapper {
+    position: relative;
+    margin: 1.5em 0;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: rgb(var(--code-block-bg));
+    border: 1px solid rgb(var(--code-block-border));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* ====== 标题栏 ====== */
+.code-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 8px 12px;
+
+    background: rgb(var(--code-block-bar));
+    border-bottom: 1px solid rgb(var(--code-block-border));
+
+    user-select: none;
+}
+
+/* ====== 交通灯组（macOS 风格红黄绿圆点） ====== */
+.code-traffic-lights {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.code-traffic-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.code-traffic-light.red    { background: rgb(var(--code-traffic-red)); }
+.code-traffic-light.yellow { background: rgb(var(--code-traffic-yellow)); }
+.code-traffic-light.green  { background: rgb(var(--code-traffic-green)); }
+
+/* ====== 语言标识（左侧） ====== */
+.code-lang {
+    font-size: var(--text-caption);
+    font-weight: 500;
+    color: rgb(var(--code-block-text-dim));
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    user-select: none;
+    flex: 1;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ====== 复制按钮（右侧） ====== */
+.code-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 3px 8px;
+
+    background: transparent;
+    border: 1px solid rgb(var(--code-block-border));
+    border-radius: var(--r-sm);
+
+    cursor: pointer;
+
+    color: rgb(var(--code-block-text-dim));
+    font-size: var(--text-caption);
+
+    transition: all 0.2s ease;
+
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.code-copy-btn:hover {
+    background: rgba(51, 51, 47, 0.06);
+    border-color: rgba(51, 51, 47, 0.25);
+    color: rgb(var(--code-block-text));
+}
+
+.code-copy-icon {
+    display: inline-flex;
+    align-items: center;
+}
+
+.code-copy-icon svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+    transition: transform 0.2s ease;
+}
+
+.code-copy-btn:hover .code-copy-icon svg {
+    transform: scale(1.1);
+}
+
+/* 复制成功状态 */
+.code-copy-btn.copied,
+.code-copy-btn.copied:hover {
+    background: rgba(var(--code-traffic-green), 0.15) !important;
+    border-color: rgba(var(--code-traffic-green), 0.5) !important;
+    color: #1a7f37 !important;
+}
+
+.code-copy-text {
+    font-size: var(--text-caption);
+    max-width: 0;
+    overflow: hidden;
+    transition: max-width 0.2s ease, opacity 0.2s ease;
+    white-space: nowrap;
+    opacity: 0;
+}
+
+.code-copy-btn.copied .code-copy-text {
+    max-width: 50px;
+    opacity: 1;
+}
+
+/* ====== 代码区（浅色，覆盖主题与 Chroma inline 样式） ====== */
+.code-toolbar-wrapper > pre,
+.code-toolbar-wrapper > .highlight,
+.code-toolbar-wrapper > .highlight > pre {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 0 calc(var(--r-md) - 1px) calc(var(--r-md) - 1px);
+    background-color: rgb(var(--code-block-bg)) !important;
+    color: rgb(var(--code-block-text)) !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* 隐藏主题原生 pre 左上角的圆点装饰伪元素（覆盖 .highlight 内层 pre） */
+.code-toolbar-wrapper > pre::before,
+.code-toolbar-wrapper > .highlight > pre::before {
+    display: none !important;
+}
+
+.code-toolbar-wrapper pre code {
+    display: block;
+    padding: 12px 0 !important;
+    color: rgb(var(--code-block-text)) !important;
+    background: none !important;
+    font-size: var(--text-code);
+    line-height: 1.6;
+}
+
+.code-toolbar-wrapper .chroma {
+    background-color: transparent !important;
+    color: rgb(var(--code-block-text)) !important;
+}
+
+/* ====== 行号 ====== */
+.code-toolbar-wrapper .code-line {
+    position: relative;
+    padding-left: 52px;
+    min-height: 1.6em;
+}
+
+.code-toolbar-wrapper .code-line-num {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    padding-right: 12px;
+    text-align: right;
+    color: rgb(var(--code-block-line-num));
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    border-right: 1px solid rgba(221, 220, 216, 0.7);
+    background: rgb(var(--code-block-bg));
+}
+
+/* ====== Chroma Monokai 深色 inline 色 → 浅色可读配色覆盖 ====== */
+/* 注释 */
+.code-toolbar-wrapper pre code span[style*="color:#75715e"] { color: #6a737d !important; }
+/* 关键字 / 运算符 */
+.code-toolbar-wrapper pre code span[style*="color:#f92672"] { color: #b3413a !important; }
+/* 属性 / 变量名 */
+.code-toolbar-wrapper pre code span[style*="color:#a6e22e"] { color: #4a6d8c !important; }
+/* 字符串 */
+.code-toolbar-wrapper pre code span[style*="color:#e6db74"] { color: #7a6a2b !important; }
+/* 数字 / 常量 */
+.code-toolbar-wrapper pre code span[style*="color:#ae81ff"] { color: #7a5c9e !important; }
+/* 类型 / 类名 */
+.code-toolbar-wrapper pre code span[style*="color:#66d9ef"] { color: #8a6d4f !important; }
+/* 函数名 */
+.code-toolbar-wrapper pre code span[style*="color:#fd971f"] { color: #8a5d3d !important; }
+/* 其它浅色文字（如 #f8f8f2）统一为前景色 */
+.code-toolbar-wrapper pre code span[style*="color:#f8f8f2"] { color: rgb(var(--code-block-text)) !important; }
+/* Error token（Chroma 对孤立引号等报错字符，Monokai 深紫黑底 #1e0010）→ 去背景，按普通文字渲染 */
+.code-toolbar-wrapper pre code span[style*="background-color:#1e0010"] {
+    background: none !important;
+    color: rgb(var(--code-block-text)) !important;
+}
+
+/* ====== 底部滚动条美化（暖调） ====== */
+.code-toolbar-wrapper pre::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.code-toolbar-wrapper pre::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 0 0 9px 9px;
+}
+
+.code-toolbar-wrapper pre::-webkit-scrollbar-thumb {
+    background: #d0cec8;
+    border-radius: 4px;
+}
+
+.code-toolbar-wrapper pre::-webkit-scrollbar-thumb:hover {
+    background: #b5b2aa;
+}
+
+.code-toolbar-wrapper pre {
+    scrollbar-width: thin;
+    scrollbar-color: #d0cec8 transparent;
+}
+
+/* ====== 移动端适配 ====== */
+@media screen and (max-width: 768px) {
+    .code-toolbar {
+        padding: 7px 10px;
+        gap: 8px;
+    }
+
+    .code-traffic-lights {
+        gap: 6px;
+    }
+
+    .code-traffic-light {
+        width: 10px;
+        height: 10px;
+    }
+
+    .code-lang {
+        font-size: var(--text-caption);
+    }
+
+    .code-copy-btn {
+        padding: 2px 6px;
+        font-size: var(--text-caption);
+    }
+
+    .code-toolbar-wrapper pre code {
+        padding: 10px 0 !important;
+    }
+
+    .code-toolbar-wrapper .code-line {
+        padding-left: 46px;
+    }
+
+    .code-toolbar-wrapper .code-line-num {
+        width: 34px;
+    }
+}

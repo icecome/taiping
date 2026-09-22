@@ -1,0 +1,375 @@
+/* 文章加密组件样式 - 共享版
+   优先使用主题的 --color-* 变量，无定义时使用默认值
+   新主题可通过定义 --color-* 变量自动适配 */
+
+:root {
+  --encrypt-bg-default: #ffffff;
+  --encrypt-surface-default: #f8f8f8;
+  --encrypt-ink-default: #333333;
+  --encrypt-ink-2-default: #666666;
+  --encrypt-ink-3-default: #999999;
+  --encrypt-border-default: #e0e0e0;
+  --encrypt-radius-default: 8px;
+  --encrypt-transition-default: 0.3s ease;
+  --encrypt-font-default: inherit;
+  --encrypt-weight-medium-default: 500;
+  --encrypt-weight-semibold-default: 600;
+
+  --encrypt-bg: var(--color-surface, var(--encrypt-bg-default));
+  --encrypt-surface: var(--color-bg, var(--encrypt-surface-default));
+  --encrypt-ink: var(--color-ink, var(--encrypt-ink-default));
+  --encrypt-ink-2: var(--color-ink-2, var(--encrypt-ink-2-default));
+  --encrypt-ink-3: var(--color-ink-3, var(--encrypt-ink-3-default));
+  --encrypt-border: var(--color-line, var(--encrypt-border-default));
+  --encrypt-radius: var(--r-sm, var(--encrypt-radius-default));
+  --encrypt-transition: var(--duration-normal, var(--encrypt-transition-default));
+  --encrypt-font: var(--font-serif, var(--encrypt-font-default));
+  --encrypt-weight-medium: var(--weight-medium, var(--encrypt-weight-medium-default));
+  --encrypt-weight-semibold: var(--weight-semibold, var(--encrypt-weight-semibold-default));
+}
+
+[data-theme="dark"] {
+  --encrypt-bg-default: #1e1e1e;
+  --encrypt-surface-default: #2a2a2a;
+  --encrypt-ink-default: #e0e0e0;
+  --encrypt-ink-2-default: #b0b0b0;
+  --encrypt-ink-3-default: #808080;
+  --encrypt-border-default: #404040;
+}
+
+.post-encrypt-mask {
+  position: relative;
+  background: var(--encrypt-bg);
+  border-radius: var(--encrypt-radius);
+  overflow: hidden;
+}
+
+.post-encrypt-mask::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--encrypt-surface);
+  opacity: 0.85;
+  z-index: 10;
+}
+
+.encrypt-hint-box {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 2rem;
+  min-height: 320px;
+  text-align: center;
+}
+
+.encrypt-hint-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--encrypt-ink-3);
+  margin-bottom: 1.25rem;
+  opacity: 0.6;
+}
+
+.encrypt-hint-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+}
+
+.encrypt-hint-title {
+  font-size: 1.25rem;
+  font-weight: var(--encrypt-weight-semibold);
+  font-family: var(--encrypt-font);
+  color: var(--encrypt-ink);
+  margin-bottom: 0.75rem;
+}
+
+.encrypt-hint-message {
+  font-size: 0.875rem;
+  color: var(--encrypt-ink-2);
+  margin-bottom: 1.5rem;
+  max-width: 400px;
+  line-height: 1.7;
+}
+
+.encrypt-hint-message p {
+  margin: 0;
+  color: var(--encrypt-ink-2);
+}
+
+.encrypt-hint-message p + p {
+  margin-top: 0.35rem;
+}
+
+.encrypt-hint-message strong {
+  color: var(--encrypt-ink);
+  font-weight: var(--encrypt-weight-medium);
+}
+
+.encrypt-password-input {
+  width: 100%;
+  max-width: 360px;
+  padding: 0.75rem 2.75rem 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-family: var(--encrypt-font);
+  border: 1px solid var(--encrypt-border);
+  border-radius: var(--encrypt-radius);
+  background: var(--encrypt-surface);
+  color: var(--encrypt-ink);
+  transition: border-color var(--encrypt-transition);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.encrypt-password-input:focus {
+  border-color: var(--encrypt-ink-3);
+}
+
+.encrypt-password-input::placeholder {
+  color: var(--encrypt-ink-3);
+}
+
+/* 输入框与按钮的共享宽度容器，统一约束 max-width，避免两者在不同尺寸下宽度不一致 */
+.encrypt-form {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.encrypt-input-wrapper {
+  width: 100%;
+  position: relative;
+}
+
+.encrypt-password-toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--encrypt-ink-3);
+  cursor: pointer;
+  padding: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--encrypt-transition);
+}
+
+.encrypt-password-toggle:hover {
+  color: var(--encrypt-ink-2);
+}
+
+.encrypt-password-toggle .encrypt-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.encrypt-password-toggle .encrypt-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.encrypt-verify-btn {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-family: var(--encrypt-font);
+  font-weight: var(--encrypt-weight-medium);
+  color: var(--encrypt-ink);
+  background: var(--encrypt-bg);
+  border: 1px solid var(--encrypt-border);
+  border-radius: var(--encrypt-radius);
+  cursor: pointer;
+  transition: all var(--encrypt-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+
+.encrypt-verify-btn:hover {
+  border-color: var(--encrypt-ink-3);
+  background: var(--encrypt-surface);
+}
+
+.encrypt-verify-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.encrypt-verify-btn .encrypt-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.encrypt-verify-btn .encrypt-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.encrypt-error-message {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--encrypt-ink-3);
+  font-size: 0.8rem;
+  display: none;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 360px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.encrypt-error-message.show {
+  display: flex;
+}
+
+.encrypt-error-message .encrypt-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  color: var(--encrypt-ink-3);
+}
+
+.encrypt-error-message .encrypt-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.encrypt-verify-btn.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.encrypt-verify-btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 1.5px solid var(--encrypt-border);
+  border-top-color: var(--encrypt-ink);
+  border-radius: 50%;
+  animation: encrypt-spin 0.6s linear infinite;
+}
+
+@keyframes encrypt-spin {
+  to { transform: rotate(360deg); }
+}
+
+.encrypt-hint-tips {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--encrypt-bg);
+  border-radius: var(--encrypt-radius);
+  font-size: 0.8rem;
+  color: var(--encrypt-ink-3);
+  max-width: 400px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.encrypt-hint-tips-title {
+  font-weight: var(--encrypt-weight-medium);
+  color: var(--encrypt-ink-2);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.encrypt-hint-tips ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  line-height: 1.8;
+}
+
+[data-theme="dark"] .encrypt-hint-box {
+  background: var(--encrypt-bg);
+}
+
+[data-theme="dark"] .encrypt-password-input {
+  background: var(--encrypt-bg);
+}
+
+.post-content.unlocked {
+  animation: encrypt-unlock-fade 0.4s ease-out;
+}
+
+@keyframes encrypt-unlock-fade {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
+}
+
+.post-content-encrypted {
+  filter: blur(0);
+  user-select: none;
+  pointer-events: none;
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.toc-encrypted-hint {
+  padding: 1rem 0.75rem;
+  text-align: center;
+  color: var(--encrypt-ink-3);
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.5;
+}
+
+.toc-encrypted-hint .encrypt-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--encrypt-ink-3);
+  opacity: 0.6;
+}
+
+.toc-encrypted-hint .encrypt-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.toc-encrypted-hint span {
+  color: var(--encrypt-ink-3);
+}
+
+@media (max-width: 768px) {
+  .encrypt-hint-box {
+    padding: 2rem 1.25rem;
+    min-height: 280px;
+  }
+
+  .encrypt-hint-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .encrypt-hint-title {
+    font-size: 1.125rem;
+  }
+
+  .encrypt-form {
+    max-width: 100%;
+  }
+}

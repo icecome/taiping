@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="zh" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>说说 - 太平后台</title>
+    <style id="theme-vars">
+/* ==========================================================================
+   Taiping Blog Admin Design System
+   Style: Minimal Professional (Linear / Vercel inspired)
+   Brand: Ink Monochrome - #2E2E2E primary
+   ========================================================================== */
+
+/* -- Light Mode -- */
+:root {
+  color-scheme: light;
+
+  /* Brand Primary - Ink scale (neutral, one hue) */
+  --color-primary-50: #FAFAFA;
+  --color-primary-100: #F5F5F5;
+  --color-primary-200: #E8E8E8;
+  --color-primary-300: #D4D4D4;
+  --color-primary-400: #A3A3A3;
+  --color-primary-500: #737373;
+  --color-primary-600: #525252;
+  --color-primary-700: #3D3D3D;
+  --color-primary-800: #2E2E2E;
+  --color-primary-900: #1A1A1A;
+
+  /* Semantic aliases */
+  --background: #FAFAFA;
+  --foreground: #1A1A1A;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A1A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A1A;
+  --primary: #2E2E2E;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F5F5F5;
+  --secondary-foreground: #1A1A1A;
+  --muted: #F5F5F5;
+  --muted-foreground: #8C8C8C;
+  --border: #E8E8E8;
+  --border-subtle: #F0F0F0;
+  --input: #E8E8E8;
+  --ring: #3B82F6;
+
+  /* State colors - semantic status only */
+  --state-success: #16A34A;
+  --state-success-light: #F0FDF4;
+  --state-warning: #D97706;
+  --state-warning-light: #FFFBEB;
+  --state-error: #DC2626;
+  --state-error-light: #FEF2F2;
+  --state-info: #2563EB;
+  --state-info-light: #EFF6FF;
+
+  /* Radius - restrained scale */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI',
+    'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+
+  /* Shadows - static surfaces border-led, floating layers allowed deeper */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03);
+  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  /* Layout tokens */
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 64px;
+  --content-max-width: 1024px;
+  --topbar-height: 52px;
+
+  /* Scrollbar */
+  --scroll-thumb: rgba(26, 26, 26, 0.18);
+  --scroll-thumb-hover: rgba(26, 26, 26, 0.32);
+}
+
+/* -- Dark Mode -- */
+.dark {
+  color-scheme: dark;
+
+  --color-primary-50: #1A1A1A;
+  --color-primary-100: #262626;
+  --color-primary-200: #2A2A2A;
+  --color-primary-300: #404040;
+  --color-primary-400: #525252;
+  --color-primary-500: #737373;
+  --color-primary-600: #A3A3A3;
+  --color-primary-700: #D4D4D4;
+  --color-primary-800: #E5E5E5;
+  --color-primary-900: #F5F5F5;
+
+  --background: #0F0F0F;
+  --foreground: #E5E5E5;
+  --card: #1A1A1A;
+  --card-foreground: #E5E5E5;
+  --popover: #1A1A1A;
+  --popover-foreground: #E5E5E5;
+  --primary: #E5E5E5;
+  --primary-foreground: #0F0F0F;
+  --secondary: #262626;
+  --secondary-foreground: #E5E5E5;
+  --muted: #262626;
+  --muted-foreground: #8C8C8C;
+  --border: #2A2A2A;
+  --border-subtle: #222222;
+  --input: #2A2A2A;
+  --ring: #60A5FA;
+
+  --state-success: #4ADE80;
+  --state-success-light: #052E16;
+  --state-warning: #FBBF24;
+  --state-warning-light: #1C1100;
+  --state-error: #F87171;
+  --state-error-light: #450A0A;
+  --state-info: #60A5FA;
+  --state-info-light: #0A1A3A;
+
+  --scroll-thumb: rgba(229, 229, 229, 0.16);
+  --scroll-thumb-hover: rgba(229, 229, 229, 0.28);
+}
+
+/* ==========================================================================
+   Base styles
+   ========================================================================== */
+
+* {
+  border-color: var(--border);
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+}
+
+/* Scrollbar */
+.studio-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+.studio-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.studio-scroll::-webkit-scrollbar-track { background: transparent; }
+.studio-scroll::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 999px;
+}
+.studio-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+}
+
+/* ==========================================================================
+   Component utility classes
+   ========================================================================== */
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 150ms ease, box-shadow 150ms ease;
+}
+.btn-primary:hover:not(:disabled) { opacity: 0.88; }
+.btn-primary:active:not(:disabled) { transform: translateY(0.5px); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--muted);
+  border-color: var(--color-primary-300);
+}
+.btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--muted-foreground);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--state-error);
+  color: #FFFFFF;
+  border: 1px solid var(--state-error);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+.btn-danger:hover:not(:disabled) { opacity: 0.88; }
+.btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-icon { padding: 6px; width: 30px; height: 30px; }
+
+/* Inputs */
+.input-base {
+  width: 100%;
+  padding: 7px 12px;
+  font-size: 13px;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.input-base::placeholder { color: var(--muted-foreground); }
+.input-base:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+.input-base:hover:not(:focus) { border-color: var(--color-primary-300); }
+
+/* Navigation items */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+  text-decoration: none;
+}
+.nav-item:hover { background: var(--muted); color: var(--foreground); }
+.nav-item.active {
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* Table rows */
+.row-hover { transition: background 150ms ease; }
+.row-hover:hover { background: var(--muted); }
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--foreground);
+}
+.badge-success { color: var(--state-success); border-color: var(--state-success); background: var(--state-success-light); }
+.badge-warning { color: var(--state-warning); border-color: var(--state-warning); background: var(--state-warning-light); }
+.badge-error { color: var(--state-error); border-color: var(--state-error); background: var(--state-error-light); }
+.badge-muted { color: var(--muted-foreground); border-color: var(--border-subtle); background: var(--secondary); }
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* Focus visible */
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --radius-sm: var(--radius-sm);
+    --radius-md: var(--radius-md);
+    --radius-lg: var(--radius-lg);
+  }
+  @layer base {
+    body { background: var(--background); color: var(--foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--background); }
+      .text-background { color: var(--background); }
+      .border-background { border-color: var(--background); }
+      .ring-background { --tw-ring-color: var(--background); }
+      .bg-foreground { background-color: var(--foreground); }
+      .text-foreground { color: var(--foreground); }
+      .border-foreground { border-color: var(--foreground); }
+      .ring-foreground { --tw-ring-color: var(--foreground); }
+      .bg-card { background-color: var(--card); }
+      .text-card { color: var(--card); }
+      .border-card { border-color: var(--card); }
+      .ring-card { --tw-ring-color: var(--card); }
+      .bg-card-foreground { background-color: var(--card-foreground); }
+      .text-card-foreground { color: var(--card-foreground); }
+      .border-card-foreground { border-color: var(--card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--card-foreground); }
+      .bg-popover { background-color: var(--popover); }
+      .text-popover { color: var(--popover); }
+      .border-popover { border-color: var(--popover); }
+      .ring-popover { --tw-ring-color: var(--popover); }
+      .bg-popover-foreground { background-color: var(--popover-foreground); }
+      .text-popover-foreground { color: var(--popover-foreground); }
+      .border-popover-foreground { border-color: var(--popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--popover-foreground); }
+      .bg-primary { background-color: var(--primary); }
+      .text-primary { color: var(--primary); }
+      .border-primary { border-color: var(--primary); }
+      .ring-primary { --tw-ring-color: var(--primary); }
+      .bg-primary-foreground { background-color: var(--primary-foreground); }
+      .text-primary-foreground { color: var(--primary-foreground); }
+      .border-primary-foreground { border-color: var(--primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--primary-foreground); }
+      .bg-secondary { background-color: var(--secondary); }
+      .text-secondary { color: var(--secondary); }
+      .border-secondary { border-color: var(--secondary); }
+      .ring-secondary { --tw-ring-color: var(--secondary); }
+      .bg-secondary-foreground { background-color: var(--secondary-foreground); }
+      .text-secondary-foreground { color: var(--secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--secondary-foreground); }
+      .bg-muted { background-color: var(--muted); }
+      .text-muted { color: var(--muted); }
+      .border-muted { border-color: var(--muted); }
+      .ring-muted { --tw-ring-color: var(--muted); }
+      .bg-muted-foreground { background-color: var(--muted-foreground); }
+      .text-muted-foreground { color: var(--muted-foreground); }
+      .border-muted-foreground { border-color: var(--muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--muted-foreground); }
+      .bg-border { background-color: var(--border); }
+      .text-border { color: var(--border); }
+      .border-border { border-color: var(--border); }
+      .ring-border { --tw-ring-color: var(--border); }
+      .bg-input { background-color: var(--input); }
+      .text-input { color: var(--input); }
+      .border-input { border-color: var(--input); }
+      .ring-input { --tw-ring-color: var(--input); }
+      .bg-ring { background-color: var(--ring); }
+      .text-ring { color: var(--ring); }
+      .border-ring { border-color: var(--ring); }
+      .ring-ring { --tw-ring-color: var(--ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+    <style id="responsive-and-shared">
+/* ==========================================================================
+   Shared utilities (consolidated from page-level styles)
+   ========================================================================== */
+.nav-item-active {
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 500;
+}
+.nav-item-active:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.shadow-floating { box-shadow: var(--shadow-floating); }
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Mobile bottom navigation bar
+   ========================================================================== */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  z-index: 50;
+}
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+.mobile-nav-item.active {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Responsive breakpoints
+   Desktop (>=768px): Sidebar 240px + content
+   Mobile (<768px): No sidebar, bottom nav, full-width content
+   ========================================================================== */
+@media (max-width: 767px) {
+  /* Override inline grid-template-columns */
+  .admin-shell {
+    grid-template-columns: 1fr !important;
+  }
+  /* Hide sidebar */
+  .admin-sidebar {
+    display: none !important;
+  }
+  /* Show bottom nav */
+  .mobile-nav {
+    display: flex !important;
+  }
+  /* Adjust content padding for bottom nav space */
+  .admin-main {
+    padding: 12px 12px 64px !important;
+  }
+  /* Prevent text wrapping in header descriptions on mobile */
+  .admin-desc-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+  }
+  /* Status tabs: horizontal scroll on mobile */
+  .admin-tabs-row {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-tabs-row > * {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+  .admin-tabs-row > .ml-4 {
+    margin-left: 1rem !important;
+  }
+  /* Filter row: allow wrapping but keep button on same line as last input */
+  .admin-filter-row {
+    flex-wrap: wrap !important;
+  }
+  .admin-filter-row > .admin-filter-input {
+    flex: 1 1 120px !important;
+    min-width: 0 !important;
+  }
+  .admin-filter-row > .admin-filter-select {
+    flex: 0 0 auto !important;
+  }
+  .admin-filter-row > .admin-filter-btn {
+    flex: 0 0 auto !important;
+  }
+  /* Stack two-column layouts */
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Comment drawer: full width on mobile */
+  .comment-drawer {
+    width: 100% !important;
+  }
+  /* Max width constraint removed on mobile */
+  .admin-content {
+    max-width: 100% !important;
+  }
+}
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <style>
+      /* Page-level supplementary styles (preflight head kept untouched).
+         Duplicate rules (nav-item-active, bg-primary-*, line-clamp-3) moved
+         to shared preflight. Only page-specific CSS remains here. */
+      .text-primary-foreground { color: var(--primary-foreground); }
+
+      .cal-cell { width: 28px; height: 28px; border-radius: 3px; }
+      .tag-pill { cursor: pointer; transition: background 150ms ease; }
+      .tag-pill:hover { background: var(--color-primary-100); }
+
+      @media (max-width: 767px) {
+        .cal-cell { width: 32px; height: 32px; }
+      }
+
+      /* ===== Mobile: moment page redesign ===== */
+      @media (max-width: 767px) {
+        /* Hide the compose card on mobile (replace with FAB) */
+        .moment-compose-card { display: none !important; }
+        /* Hide the right column (calendar + tags) on mobile */
+        .moment-right-column { display: none !important; }
+        /* Show FAB and filter bar */
+        .moment-fab { display: flex !important; }
+        .moment-filter-bar { display: flex !important; }
+
+        /* Slide-up compose sheet */
+        .compose-sheet {
+          display: none;
+          position: fixed;
+          bottom: 56px;
+          left: 0;
+          right: 0;
+          max-height: 70vh;
+          background: var(--card);
+          border-top: 1px solid var(--border);
+          border-radius: 12px 12px 0 0;
+          box-shadow: var(--shadow-floating);
+          z-index: 55;
+          overflow-y: auto;
+          flex-direction: column;
+        }
+        .compose-sheet.open { display: flex !important; }
+        .compose-sheet-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.3);
+          z-index: 50;
+        }
+        .compose-sheet-backdrop.open { display: block !important; }
+
+        /* Filter sheet (calendar + tags) */
+        .filter-sheet {
+          display: none;
+          position: fixed;
+          bottom: 56px;
+          left: 0;
+          right: 0;
+          max-height: 60vh;
+          background: var(--card);
+          border-top: 1px solid var(--border);
+          border-radius: 12px 12px 0 0;
+          box-shadow: var(--shadow-floating);
+          z-index: 55;
+          overflow-y: auto;
+          flex-direction: column;
+        }
+        .filter-sheet.open { display: flex !important; }
+        .filter-sheet-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.3);
+          z-index: 50;
+        }
+        .filter-sheet-backdrop.open { display: block !important; }
+      }
+
+      /* Desktop: hide mobile-only elements */
+      @media (min-width: 768px) {
+        .moment-fab { display: none !important; }
+        .moment-filter-bar { display: none !important; }
+        .compose-sheet, .compose-sheet-backdrop { display: none !important; }
+        .filter-sheet, .filter-sheet-backdrop { display: none !important; }
+      }
+    </style>
+    <div class="h-screen grid bg-background admin-shell" style="grid-template-columns: 240px 1fr;">
+      <!-- ======================= SIDEBAR ======================= -->
+      <aside class="admin-sidebar border-r border-border bg-card flex flex-col h-full overflow-hidden" style="width:240px;flex-shrink:0;">
+        <!-- Logo + Search -->
+        <div class="px-4 pt-4 pb-3 border-b border-border-subtle">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-sm bg-primary flex items-center justify-center">
+              <span class="text-primary-foreground text-xs font-semibold">太</span>
+            </div>
+            <span class="text-sm font-semibold text-foreground tracking-wide">太平后台</span>
+          </div>
+          <div class="mt-3 flex items-center gap-2 px-2.5 py-1.5 border border-border rounded-sm bg-secondary text-muted-foreground cursor-text">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            <span class="text-xs">搜索...</span>
+            <span class="ml-auto text-[10px] border border-border-subtle px-1 rounded-sm bg-card">Ctrl K</span>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 overflow-y-auto studio-scroll p-2 space-y-4">
+          <!-- Group: 内容 -->
+          <div>
+            <div class="px-3 mb-1 text-[11px] uppercase tracking-wider text-muted-foreground">内容</div>
+            <div class="space-y-0.5">
+              <a data-dom-id="nav-dashboard" class="nav-item" href="#">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                概览
+              </a>
+              <a data-dom-id="nav-post-list" class="nav-item" href="#">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                文章
+              </a>
+              <a data-dom-id="nav-pages" class="nav-item" href="#">
+                <i data-lucide="file" class="w-4 h-4"></i>
+                页面
+              </a>
+              <a data-dom-id="nav-moments" class="nav-item nav-item-active" href="#">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                说说
+              </a>
+              <a data-dom-id="nav-comment-audit" class="nav-item" href="#">
+                <i data-lucide="message-square" class="w-4 h-4"></i>
+                评论
+              </a>
+            </div>
+          </div>
+
+          <!-- Group: 界面 -->
+          <div>
+            <div class="px-3 mb-1 text-[11px] uppercase tracking-wider text-muted-foreground">界面</div>
+            <div class="space-y-0.5">
+              <a data-dom-id="nav-taxonomy" class="nav-item" href="#">
+                <i data-lucide="tags" class="w-4 h-4"></i>
+                分类标签
+              </a>
+              <a data-dom-id="nav-theme" class="nav-item" href="#">
+                <i data-lucide="palette" class="w-4 h-4"></i>
+                主题
+              </a>
+            </div>
+          </div>
+
+          <!-- Group: 系统 -->
+          <div>
+            <div class="px-3 mb-1 text-[11px] uppercase tracking-wider text-muted-foreground">系统</div>
+            <div class="space-y-0.5">
+              <a data-dom-id="nav-media" class="nav-item" href="#">
+                <i data-lucide="image" class="w-4 h-4"></i>
+                媒体
+              </a>
+              <a data-dom-id="nav-settings" class="nav-item" href="#">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+                设置
+              </a>
+              <a data-dom-id="nav-design-spec" class="nav-item" href="#">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
+                设计规范
+              </a>
+            </div>
+          </div>
+        </nav>
+
+        <!-- User -->
+        <div class="border-t border-border-subtle px-3 py-3 flex items-center gap-2">
+          <div class="w-8 h-8 rounded-sm bg-secondary border border-border flex items-center justify-center text-xs text-muted-foreground">管</div>
+          <div class="min-w-0 flex-1">
+            <div class="text-sm text-foreground truncate">Administrator</div>
+            <div class="text-[11px] text-muted-foreground">管理员</div>
+          </div>
+          <button class="w-8 h-8 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary" title="退出登录">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </aside>
+      <!-- ======================= /SIDEBAR ======================= -->
+
+      <!-- ======================= MAIN ======================= -->
+      <div class="flex flex-col h-full min-h-0 overflow-hidden">
+        <main class="admin-main flex-1 min-h-0 overflow-hidden p-6">
+          <div class="admin-content h-full max-w-5xl mx-auto overflow-y-auto studio-scroll">
+
+            <!-- Page Header -->
+            <header class="flex items-start justify-between mb-5">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-sm bg-secondary border border-border flex items-center justify-center text-foreground">
+                  <i data-lucide="message-circle" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h1 class="text-lg font-semibold text-foreground leading-tight">说说</h1>
+                  <p class="text-xs text-muted-foreground">记录当下的想法</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-muted-foreground">共 73 条</span>
+                <button class="btn-ghost btn-sm">
+                  <i data-lucide="filter" class="w-4 h-4"></i>
+                  筛选
+                </button>
+              </div>
+            </header>
+
+            <!-- Two-Column Layout -->
+            <div class="grid gap-4 responsive-grid" style="grid-template-columns: 1fr 280px;">
+
+              <!-- ============ LEFT COLUMN ============ -->
+              <div class="min-w-0">
+
+                <!-- Compose Area -->
+                <div class="card p-4 mb-4 moment-compose-card">
+                  <textarea class="input-base border-0 resize-none" rows="3" placeholder="这一刻的想法..."></textarea>
+
+                  <!-- Media toolbar -->
+                  <div class="flex flex-wrap items-center gap-1 mt-2 border-t border-border-subtle pt-2">
+                    <button class="btn-ghost btn-sm"><i data-lucide="image" class="w-4 h-4"></i> 图片</button>
+                    <button class="btn-ghost btn-sm"><i data-lucide="video" class="w-4 h-4"></i> 视频</button>
+                    <button class="btn-ghost btn-sm"><i data-lucide="link" class="w-4 h-4"></i> 链接</button>
+                    <button class="btn-ghost btn-sm"><i data-lucide="hash" class="w-4 h-4"></i> 标签</button>
+                    <div class="ml-auto flex items-center gap-2">
+                      <span class="text-xs text-muted-foreground">0/2000</span>
+                      <button class="btn-primary btn-sm">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        发布
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Image grid preview (3x3, WeChat style) -->
+                  <div class="grid grid-cols-3 gap-1 mt-2" style="max-width: 300px;">
+                    <div class="aspect-square rounded-sm border border-border" style="background: var(--color-primary-300);"></div>
+                    <div class="aspect-square rounded-sm border border-border" style="background: var(--color-primary-400);"></div>
+                    <div class="aspect-square rounded-sm border border-border" style="background: var(--color-primary-500);"></div>
+                    <div class="aspect-square rounded-sm border border-border" style="background: var(--color-primary-600);"></div>
+                    <!-- Add more button -->
+                    <button class="aspect-square rounded-sm border border-dashed border-border flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+                      <i data-lucide="plus" class="w-5 h-5"></i>
+                    </button>
+                  </div>
+                  <div class="text-xs text-muted-foreground mt-1">4/9 张</div>
+
+                  <!-- Video URL row -->
+                  <div class="flex items-center gap-2 mt-2">
+                    <i data-lucide="video" class="w-3.5 h-3.5 text-muted-foreground shrink-0"></i>
+                    <input class="input-base text-xs" style="max-width: 340px;" placeholder="视频链接" value="https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
+                    <button class="text-muted-foreground hover:text-foreground" title="移除视频">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+
+                  <!-- Link card row -->
+                  <div class="flex items-center gap-2 mt-2 p-2 border border-border-subtle rounded-sm bg-secondary" style="max-width: 380px;">
+                    <i data-lucide="link" class="w-3.5 h-3.5 text-muted-foreground shrink-0"></i>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs text-foreground truncate">链接标题</div>
+                      <div class="text-[10px] text-muted-foreground truncate">https://example.com/article</div>
+                    </div>
+                    <button class="text-muted-foreground hover:text-foreground shrink-0" title="移除链接">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+
+                  <!-- Selected tags -->
+                  <div class="flex items-center gap-1.5 mt-2">
+                    <span class="badge badge-muted">
+                      #生活
+                      <button class="text-muted-foreground hover:text-foreground" title="移除标签">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                      </button>
+                    </span>
+                    <span class="badge badge-muted">
+                      #随笔
+                      <button class="text-muted-foreground hover:text-foreground" title="移除标签">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                      </button>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="flex items-center justify-between mb-3">
+                  <h2 class="text-sm font-medium text-foreground">时间线</h2>
+                  <div class="flex items-center gap-1.5 text-xs">
+                    <button class="text-foreground font-medium">最新</button>
+                    <span class="text-muted-foreground">/</span>
+                    <button class="text-muted-foreground hover:text-foreground">最早</button>
+                  </div>
+                </div>
+
+                <!-- Group 1: 今天 -->
+                <div class="text-xs text-muted-foreground mb-2 sticky top-0 bg-background py-1 z-10">今天 · 2026-09-21</div>
+
+                <!-- Entry 1 -->
+                <div class="card p-3 mb-2">
+                  <div class="flex items-start gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground shrink-0">徐</div>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs text-muted-foreground mb-1">10:26</div>
+                      <p class="text-sm text-foreground whitespace-pre-wrap mb-2">今天天气很好，阳光明媚。下午去了地坛公园散步，看到两匹白马在红墙边吃草，很有意境。</p>
+                      <div class="grid grid-cols-3 gap-1 mb-2" style="max-width: 240px;">
+                        <div class="aspect-square rounded-sm bg-secondary border border-border"></div>
+                        <div class="aspect-square rounded-sm bg-secondary border border-border"></div>
+                        <div class="aspect-square rounded-sm bg-secondary border border-border"></div>
+                      </div>
+                      <div class="flex items-center gap-1.5 mb-1">
+                        <span class="text-xs text-[var(--state-info)]">#生活</span>
+                        <span class="text-xs text-[var(--state-info)]">#散步</span>
+                      </div>
+                      <div class="flex items-center gap-2 mt-1.5">
+                        <button class="text-xs text-muted-foreground hover:text-foreground">编辑</button>
+                        <span class="text-muted-foreground">·</span>
+                        <button class="text-xs text-muted-foreground hover:text-[var(--state-error)]">删除</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Entry 2 -->
+                <div class="card p-3 mb-2">
+                  <div class="flex items-start gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground shrink-0">徐</div>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs text-muted-foreground mb-1">10:22</div>
+                      <p class="text-sm text-foreground whitespace-pre-wrap mb-2">Gridea Pro 的闪念功能设计得不错，日历热力图可以直观看到发布频率。我们也可以借鉴这个思路。</p>
+                      <div class="flex items-center gap-1.5 mb-1">
+                        <span class="text-xs text-[var(--state-info)]">#设计</span>
+                      </div>
+                      <div class="flex items-center gap-2 mt-1.5">
+                        <button class="text-xs text-muted-foreground hover:text-foreground">编辑</button>
+                        <span class="text-muted-foreground">·</span>
+                        <button class="text-xs text-muted-foreground hover:text-[var(--state-error)]">删除</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Group 2: 昨天 -->
+                <div class="text-xs text-muted-foreground mb-2 sticky top-0 bg-background py-1 z-10">昨天 · 2026-09-20</div>
+
+                <!-- Entry 3 -->
+                <div class="card p-3 mb-2">
+                  <div class="flex items-start gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground shrink-0">徐</div>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs text-muted-foreground mb-1">22:15</div>
+                      <p class="text-sm text-foreground whitespace-pre-wrap mb-2">React 19 的 use() hook 真好用，直接在 render 中读 promise，不需要 useEffect 了。</p>
+                      <div class="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                        <i data-lucide="link" class="w-3 h-3"></i>
+                        <span>react.dev</span>
+                      </div>
+                      <div class="flex items-center gap-1.5 mb-1">
+                        <span class="text-xs text-[var(--state-info)]">#前端</span>
+                        <span class="text-xs text-[var(--state-info)]">#React</span>
+                      </div>
+                      <div class="flex items-center gap-2 mt-1.5">
+                        <button class="text-xs text-muted-foreground hover:text-foreground">编辑</button>
+                        <span class="text-muted-foreground">·</span>
+                        <button class="text-xs text-muted-foreground hover:text-[var(--state-error)]">删除</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Entry 4 -->
+                <div class="card p-3 mb-2">
+                  <div class="flex items-start gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground shrink-0">徐</div>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs text-muted-foreground mb-1">15:30</div>
+                      <p class="text-sm text-foreground whitespace-pre-wrap mb-2">今天完成了博客后台的设计规范文档，墨色极简风格。240px 侧边栏 + 1024px 内容区，克制圆角 4-8px。</p>
+                      <div class="mb-2" style="max-width: 180px;">
+                        <div class="aspect-square rounded-sm bg-secondary border border-border"></div>
+                      </div>
+                      <div class="flex items-center gap-1.5 mb-1">
+                        <span class="text-xs text-[var(--state-info)]">#设计</span>
+                      </div>
+                      <div class="flex items-center gap-2 mt-1.5">
+                        <button class="text-xs text-muted-foreground hover:text-foreground">编辑</button>
+                        <span class="text-muted-foreground">·</span>
+                        <button class="text-xs text-muted-foreground hover:text-[var(--state-error)]">删除</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Entry 5 -->
+                <div class="card p-3 mb-2">
+                  <div class="flex items-start gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground shrink-0">徐</div>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs text-muted-foreground mb-1">09:00</div>
+                      <p class="text-sm text-foreground whitespace-pre-wrap">早起。先喝杯咖啡，然后开始写代码。</p>
+                      <div class="flex items-center gap-2 mt-1.5">
+                        <button class="text-xs text-muted-foreground hover:text-foreground">编辑</button>
+                        <span class="text-muted-foreground">·</span>
+                        <button class="text-xs text-muted-foreground hover:text-[var(--state-error)]">删除</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Group 3 -->
+                <div class="text-xs text-muted-foreground mb-2 sticky top-0 bg-background py-1 z-10">2026-09-18</div>
+
+                <!-- Entry 6 -->
+                <div class="card p-3 mb-2">
+                  <div class="flex items-start gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground shrink-0">徐</div>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs text-muted-foreground mb-1">21:15</div>
+                      <p class="text-sm text-foreground whitespace-pre-wrap mb-2">收到京东的电话，推销什么会员服务，直接挂了。现在的营销电话太多了。</p>
+                      <div class="flex items-center gap-1.5 mb-1">
+                        <span class="text-xs text-[var(--state-info)]">#生活</span>
+                      </div>
+                      <div class="flex items-center gap-2 mt-1.5">
+                        <button class="text-xs text-muted-foreground hover:text-foreground">编辑</button>
+                        <span class="text-muted-foreground">·</span>
+                        <button class="text-xs text-muted-foreground hover:text-[var(--state-error)]">删除</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              <!-- ============ /LEFT COLUMN ============ -->
+
+              <!-- ============ RIGHT COLUMN ============ -->
+              <div class="shrink-0 moment-right-column">
+
+                <!-- Calendar Heatmap Card -->
+                <div class="card p-3">
+                  <!-- Header row -->
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-foreground">2026</span>
+                    <div class="flex items-center gap-1">
+                      <button class="btn-ghost btn-icon" title="上个月">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                      </button>
+                      <button class="btn-ghost btn-icon" title="下个月">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Month display -->
+                  <div class="text-center text-xs text-muted-foreground mb-2">9月</div>
+
+                  <!-- Weekday headers -->
+                  <div class="grid grid-cols-7 gap-0.5 mb-1">
+                    <div class="text-[10px] text-muted-foreground text-center">一</div>
+                    <div class="text-[10px] text-muted-foreground text-center">二</div>
+                    <div class="text-[10px] text-muted-foreground text-center">三</div>
+                    <div class="text-[10px] text-muted-foreground text-center">四</div>
+                    <div class="text-[10px] text-muted-foreground text-center">五</div>
+                    <div class="text-[10px] text-muted-foreground text-center">六</div>
+                    <div class="text-[10px] text-muted-foreground text-center">日</div>
+                  </div>
+
+                  <!-- Date cells (Sep 2026: 1 = Mon, 30 days, 5x7=35 cells) -->
+                  <div class="grid grid-cols-7 gap-0.5">
+                    <!-- Week 1: 1..7 -->
+                    <button class="cal-cell bg-primary-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月1日 · 1 条">
+                      <span class="text-[10px] text-foreground">1</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月2日">
+                      <span class="text-[10px] text-muted-foreground">2</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月3日">
+                      <span class="text-[10px] text-muted-foreground">3</span>
+                    </button>
+                    <button class="cal-cell bg-primary-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月4日 · 1 条">
+                      <span class="text-[10px] text-foreground">4</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月5日">
+                      <span class="text-[10px] text-muted-foreground">5</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月6日">
+                      <span class="text-[10px] text-muted-foreground">6</span>
+                    </button>
+                    <button class="cal-cell bg-primary-300 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月7日 · 2 条">
+                      <span class="text-[10px] text-foreground">7</span>
+                    </button>
+
+                    <!-- Week 2: 8..14 -->
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月8日">
+                      <span class="text-[10px] text-muted-foreground">8</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月9日">
+                      <span class="text-[10px] text-muted-foreground">9</span>
+                    </button>
+                    <button class="cal-cell bg-primary-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月10日 · 1 条">
+                      <span class="text-[10px] text-foreground">10</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月11日">
+                      <span class="text-[10px] text-muted-foreground">11</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月12日">
+                      <span class="text-[10px] text-muted-foreground">12</span>
+                    </button>
+                    <button class="cal-cell bg-primary-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月13日 · 1 条">
+                      <span class="text-[10px] text-foreground">13</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月14日">
+                      <span class="text-[10px] text-muted-foreground">14</span>
+                    </button>
+
+                    <!-- Week 3: 15..21 -->
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月15日">
+                      <span class="text-[10px] text-muted-foreground">15</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月16日">
+                      <span class="text-[10px] text-muted-foreground">16</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月17日">
+                      <span class="text-[10px] text-muted-foreground">17</span>
+                    </button>
+                    <button class="cal-cell bg-primary-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月18日 · 1 条">
+                      <span class="text-[10px] text-foreground">18</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月19日">
+                      <span class="text-[10px] text-muted-foreground">19</span>
+                    </button>
+                    <button class="cal-cell bg-primary-400 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月20日 · 3 条">
+                      <span class="text-[10px] text-primary-foreground">20</span>
+                    </button>
+                    <button class="cal-cell bg-primary-300 ring-2 ring-primary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月21日 · 今天 · 2 条">
+                      <span class="text-[10px] text-foreground">21</span>
+                    </button>
+
+                    <!-- Week 4: 22..28 -->
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月22日">
+                      <span class="text-[10px] text-muted-foreground">22</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月23日">
+                      <span class="text-[10px] text-muted-foreground">23</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月24日">
+                      <span class="text-[10px] text-muted-foreground">24</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月25日">
+                      <span class="text-[10px] text-muted-foreground">25</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月26日">
+                      <span class="text-[10px] text-muted-foreground">26</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月27日">
+                      <span class="text-[10px] text-muted-foreground">27</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月28日">
+                      <span class="text-[10px] text-muted-foreground">28</span>
+                    </button>
+
+                    <!-- Week 5: 29, 30 + padding -->
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月29日">
+                      <span class="text-[10px] text-muted-foreground">29</span>
+                    </button>
+                    <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" title="9月30日">
+                      <span class="text-[10px] text-muted-foreground">30</span>
+                    </button>
+                    <div class="cal-cell" style="background:transparent;"></div>
+                    <div class="cal-cell" style="background:transparent;"></div>
+                    <div class="cal-cell" style="background:transparent;"></div>
+                    <div class="cal-cell" style="background:transparent;"></div>
+                    <div class="cal-cell" style="background:transparent;"></div>
+                  </div>
+
+                  <!-- Stats row -->
+                  <div class="flex items-center justify-between mt-3 text-xs">
+                    <span class="text-muted-foreground">总记录 73</span>
+                    <span class="text-foreground font-medium">本月 12</span>
+                  </div>
+
+                  <!-- Legend -->
+                  <div class="flex items-center gap-1 mt-2 text-[10px] text-muted-foreground">
+                    <span>少</span>
+                    <span class="inline-block w-3 h-3 rounded-sm bg-secondary"></span>
+                    <span class="inline-block w-3 h-3 rounded-sm bg-primary-100"></span>
+                    <span class="inline-block w-3 h-3 rounded-sm bg-primary-200"></span>
+                    <span class="inline-block w-3 h-3 rounded-sm bg-primary-300"></span>
+                    <span>多</span>
+                  </div>
+                </div>
+
+                <!-- Tag Cloud Card -->
+                <div class="card p-3 mt-4">
+                  <div class="text-sm font-medium text-foreground mb-2">标签</div>
+                  <div class="flex flex-wrap gap-1.5">
+                    <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#生活 (28)</span>
+                    <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#前端 (15)</span>
+                    <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#设计 (12)</span>
+                    <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#React (8)</span>
+                    <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#散步 (6)</span>
+                    <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#随笔 (4)</span>
+                    <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#咖啡 (3)</span>
+                    <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#代码 (2)</span>
+                  </div>
+                </div>
+
+              </div>
+              <!-- ============ /RIGHT COLUMN ============ -->
+
+            </div>
+            <!-- /Two-Column Layout -->
+
+          </div>
+        </main>
+      </div>
+      <!-- ======================= /MAIN ======================= -->
+
+      <!-- Mobile floating action button -->
+      <button class="moment-fab" style="display:none; position:fixed; bottom:64px; right:16px; width:48px; height:48px; border-radius:50%; background:var(--primary); color:var(--primary-foreground); border:none; box-shadow:var(--shadow-floating); z-index:40; align-items:center; justify-content:center; cursor:pointer;" onclick="openComposeSheet()">
+        <i data-lucide="pen-line" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Mobile filter bar (compact, above timeline) -->
+      <div class="moment-filter-bar" style="display:none; flex-direction:row; align-items:center; gap:8px; margin-bottom:8px;">
+        <button class="btn-ghost btn-sm" onclick="openFilterSheet()">
+          <i data-lucide="calendar" class="w-4 h-4"></i>
+          日历
+        </button>
+        <button class="btn-ghost btn-sm" onclick="openFilterSheet()">
+          <i data-lucide="hash" class="w-4 h-4"></i>
+          标签
+        </button>
+        <span class="text-xs text-muted-foreground ml-auto">共 73 条</span>
+      </div>
+
+      <!-- Compose sheet backdrop -->
+      <div class="compose-sheet-backdrop" onclick="closeComposeSheet()"></div>
+
+      <!-- Compose sheet (slide-up) -->
+      <div class="compose-sheet" id="compose-sheet">
+        <div class="flex items-center justify-between p-3 border-b border-border-subtle">
+          <span class="text-sm font-medium text-foreground">发布说说</span>
+          <button class="w-7 h-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary" onclick="closeComposeSheet()">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="p-3">
+          <textarea class="input-base border-0 resize-none" rows="3" placeholder="这一刻的想法..."></textarea>
+          <div class="flex items-center gap-1 mt-2 border-t border-border-subtle pt-2 flex-wrap">
+            <button class="btn-ghost btn-sm"><i data-lucide="image" class="w-4 h-4"></i> 图片</button>
+            <button class="btn-ghost btn-sm"><i data-lucide="video" class="w-4 h-4"></i> 视频</button>
+            <button class="btn-ghost btn-sm"><i data-lucide="link" class="w-4 h-4"></i> 链接</button>
+            <button class="btn-ghost btn-sm"><i data-lucide="hash" class="w-4 h-4"></i> 标签</button>
+            <div class="ml-auto flex items-center gap-2">
+              <span class="text-xs text-muted-foreground">0/2000</span>
+              <button class="btn-primary btn-sm">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                发布
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter sheet backdrop -->
+      <div class="filter-sheet-backdrop" onclick="closeFilterSheet()"></div>
+
+      <!-- Filter sheet (slide-up, contains calendar + tags) -->
+      <div class="filter-sheet" id="filter-sheet">
+        <div class="flex items-center justify-between p-3 border-b border-border-subtle">
+          <span class="text-sm font-medium text-foreground">筛选</span>
+          <button class="w-7 h-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary" onclick="closeFilterSheet()">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="p-3">
+          <!-- Calendar (copy from existing right column) -->
+          <div class="card p-3 mb-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-foreground">2026</span>
+              <div class="flex items-center gap-1">
+                <button class="btn-ghost btn-icon"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                <button class="btn-ghost btn-icon"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+              </div>
+            </div>
+            <div class="text-center text-xs text-muted-foreground mb-2">9月</div>
+            <div class="grid grid-cols-7 gap-0.5 mb-1">
+              <div class="text-[10px] text-muted-foreground text-center">一</div>
+              <div class="text-[10px] text-muted-foreground text-center">二</div>
+              <div class="text-[10px] text-muted-foreground text-center">三</div>
+              <div class="text-[10px] text-muted-foreground text-center">四</div>
+              <div class="text-[10px] text-muted-foreground text-center">五</div>
+              <div class="text-[10px] text-muted-foreground text-center">六</div>
+              <div class="text-[10px] text-muted-foreground text-center">日</div>
+            </div>
+            <div class="grid grid-cols-7 gap-0.5">
+              <button class="cal-cell bg-primary-200 flex items-center justify-center cursor-pointer"><span class="text-[10px]">1</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">2</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">3</span></button>
+              <button class="cal-cell bg-primary-200 flex items-center justify-center cursor-pointer"><span class="text-[10px]">4</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">5</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">6</span></button>
+              <button class="cal-cell bg-primary-300 flex items-center justify-center cursor-pointer"><span class="text-[10px]">7</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">8</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">9</span></button>
+              <button class="cal-cell bg-primary-200 flex items-center justify-center cursor-pointer"><span class="text-[10px]">10</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">11</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">12</span></button>
+              <button class="cal-cell bg-primary-200 flex items-center justify-center cursor-pointer"><span class="text-[10px]">13</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">14</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">15</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">16</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">17</span></button>
+              <button class="cal-cell bg-primary-200 flex items-center justify-center cursor-pointer"><span class="text-[10px]">18</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">19</span></button>
+              <button class="cal-cell bg-primary-400 flex items-center justify-center cursor-pointer"><span class="text-[10px] text-primary-foreground">20</span></button>
+              <button class="cal-cell bg-primary-300 ring-2 ring-primary flex items-center justify-center cursor-pointer"><span class="text-[10px]">21</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">22</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">23</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">24</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">25</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">26</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">27</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">28</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">29</span></button>
+              <button class="cal-cell bg-secondary flex items-center justify-center cursor-pointer"><span class="text-[10px] text-muted-foreground">30</span></button>
+            </div>
+            <div class="flex items-center justify-between mt-3 text-xs">
+              <span class="text-muted-foreground">总记录 73</span>
+              <span class="text-foreground font-medium">本月 12</span>
+            </div>
+          </div>
+          <!-- Tags (copy from existing right column) -->
+          <div class="card p-3">
+            <div class="text-sm font-medium text-foreground mb-2">标签</div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#生活 (28)</span>
+              <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#前端 (15)</span>
+              <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#设计 (12)</span>
+              <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#React (8)</span>
+              <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#散步 (6)</span>
+              <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#随笔 (4)</span>
+              <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#咖啡 (3)</span>
+              <span class="tag-pill text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">#代码 (2)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="mobile-nav">
+        <a class="mobile-nav-item" data-dom-id="nav-dashboard" href="#">
+          <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+          <span>概览</span>
+        </a>
+        <a class="mobile-nav-item" data-dom-id="nav-post-list" href="#">
+          <i data-lucide="file-text" class="w-5 h-5"></i>
+          <span>文章</span>
+        </a>
+        <a class="mobile-nav-item active" data-dom-id="nav-moments" href="#">
+          <i data-lucide="message-circle" class="w-5 h-5"></i>
+          <span>说说</span>
+        </a>
+        <a class="mobile-nav-item" data-dom-id="nav-comment-audit" href="#">
+          <i data-lucide="message-square" class="w-5 h-5"></i>
+          <span>评论</span>
+        </a>
+        <a class="mobile-nav-item" data-dom-id="nav-settings" href="#">
+          <i data-lucide="user" class="w-5 h-5"></i>
+          <span>我的</span>
+        </a>
+      </nav>
+    </div>
+    <script>
+function openComposeSheet() {
+  document.querySelector('.compose-sheet-backdrop').classList.add('open');
+  document.getElementById('compose-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeComposeSheet() {
+  document.querySelector('.compose-sheet-backdrop').classList.remove('open');
+  document.getElementById('compose-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function openFilterSheet() {
+  document.querySelector('.filter-sheet-backdrop').classList.add('open');
+  document.getElementById('filter-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeFilterSheet() {
+  document.querySelector('.filter-sheet-backdrop').classList.remove('open');
+  document.getElementById('filter-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+lucide.createIcons();
+    </script>
+</body>
+</html>

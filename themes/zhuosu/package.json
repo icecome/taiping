@@ -1,0 +1,22 @@
+{
+  "name": "@taiping/theme-zhuosu",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles/*": "./src/styles/*",
+    "./scripts/*": "./src/scripts/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@taiping/content-model": "workspace:*",
+    "@taiping/shared-utils": "workspace:*",
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,190 @@
+/**
+ * 说说行内留言：点击「留言」懒构建表单（OverType），默认不残留展示框
+ * 提交到本项目 POST /api/comments
+ */
+(function () {
+  'use strict'
+
+  var form = null
+  var anchorItem = null
+  var editorInstance = null
+  var isSubmitting = false
+
+  function isDark() {
+    var theme = document.documentElement.getAttribute('data-theme')
+    return (
+      theme === 'dark' ||
+      (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    )
+  }
+
+  function initEditor() {
+    var container = form ? form.querySelector('#mc-editor') : null
+    if (!container || editorInstance) return !!editorInstance
+    var OT = window.OverType ? window.OverType.default || window.OverType : null
+    if (!OT) return false
+    try {
+      var inst = new OT(container, {
+        placeholder: '支持 Markdown 语法',
+        theme: isDark() ? 'cave' : 'solar',
+        toolbar: true,
+        autoResize: true,
+        minHeight: 120,
+        maxHeight: 280,
+        smartLists: true,
+      })
+      editorInstance = Array.isArray(inst) ? inst[0] : inst
+      return !!editorInstance
+    } catch (e) {
+      return false
+    }
+  }
+
+  function ensureEditor() {
+    if (initEditor()) return
+    var tries = 0
+    var timer = setInterval(function () {
+      tries++
+      if (initEditor() || tries >= 50) clearInterval(timer)
+    }, 200)
+  }
+
+  function getContent() {
+    if (editorInstance) {
+      try {
+        var v = editorInstance.getValue()
+        if (v && v.trim()) return v.trim()
+      } catch (e) {}
+    }
+    var t = form ? form.querySelector('#mc-editor textarea') : null
+    return t && t.value ? t.value.trim() : ''
+  }
+
+  function setStatus(msg) {
+    var el = form ? form.querySelector('.form-message') : null
+    if (!el) return
+    el.hidden = !msg
+    el.textContent = msg
+  }
+
+  function buildForm() {
+    editorInstance = null
+    form = document.createElement('form')
+    form.className = 'guestbook-form moment-comment-form'
+    form.autocomplete = 'off'
+    form.innerHTML =
+      '<div class="guestbook-row">' +
+      '<div class="guestbook-field guestbook-field--third">' +
+      '<label class="guestbook-label">昵称（必填） *</label>' +
+      '<input class="guestbook-input" name="nickname" type="text" maxlength="40" placeholder="你的昵称" required>' +
+      '</div>' +
+      '<div class="guestbook-field guestbook-field--third">' +
+      '<label class="guestbook-label">邮箱（选填）</label>' +
+      '<input class="guestbook-input" name="email" type="email" placeholder="用于接收留言答复">' +
+      '</div>' +
+      '<div class="guestbook-field guestbook-field--third">' +
+      '<label class="guestbook-label">站点地址（选填）</label>' +
+      '<input class="guestbook-input" name="website" type="text" inputmode="url" placeholder="https://blog.example.com">' +
+      '</div>' +
+      '</div>' +
+      '<div class="guestbook-field">' +
+      '<label class="guestbook-label">内容（必填） *</label>' +
+      '<div id="mc-editor" class="guestbook-editor"></div>' +
+      '</div>' +
+      '<div class="guestbook-submit-row">' +
+      '<button class="guestbook-submit" type="submit">提交留言</button>' +
+      '<span class="guestbook-status form-message" role="status" hidden></span>' +
+      '</div>'
+    form.addEventListener('submit', function (e) {
+      e.preventDefault()
+      submit()
+    })
+    ensureEditor()
+  }
+
+  function toggleForm(item, momentId) {
+    if (!form) buildForm()
+    if (anchorItem === item && form.parentNode === item) {
+      form.remove()
+      anchorItem = null
+      return
+    }
+    item.appendChild(form)
+    anchorItem = item
+    form.dataset.targetId = momentId
+    setStatus('')
+    try {
+      form.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    } catch (e) {
+      form.scrollIntoView()
+    }
+    var nick = form.querySelector('[name="nickname"]')
+    if (nick) nick.focus()
+  }
+
+  function submit() {
+    if (!form || isSubmitting) return
+    var fd = new FormData(form)
+    var nickname = String(fd.get('nickname') || '').trim()
+    var content = getContent()
+    if (!nickname) {
+      setStatus('请填写昵称')
+      return
+    }
+    if (!content) {
+      setStatus('请填写留言内容')
+      return
+    }
+    var payload = {
+      targetType: 'moment',
+      targetId: form.dataset.targetId || '',
+      nickname: nickname,
+      email: String(fd.get('email') || ''),
+      website: String(fd.get('website') || ''),
+      content: content,
+    }
+    isSubmitting = true
+    var btn = form.querySelector('.guestbook-submit')
+    if (btn) btn.disabled = true
+    setStatus('提交中…')
+    fetch('/api/comments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(function (res) {
+        return res.json()
+      })
+      .then(function (json) {
+        if (json && json.ok) {
+          setStatus(json.data && json.data.message ? json.data.message : '已提交，待审核')
+          if (editorInstance && editorInstance.setValue) {
+            try {
+              editorInstance.setValue('')
+            } catch (e) {}
+          }
+        } else {
+          setStatus((json && json.error && json.error.message) || '提交失败')
+        }
+      })
+      .catch(function () {
+        setStatus('网络异常，请稍后重试')
+      })
+      .finally(function () {
+        isSubmitting = false
+        if (btn) btn.disabled = false
+      })
+  }
+
+  document.querySelectorAll('.moment-comment-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-id')
+      var card = btn.closest('.article-item--moment')
+      if (!id || !card) return
+      toggleForm(card, id)
+    })
+  })
+})()

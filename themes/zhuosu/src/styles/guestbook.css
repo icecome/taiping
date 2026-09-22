@@ -1,0 +1,505 @@
+/* 访客留言（留言页） */
+.guestbook-section {
+  max-width: var(--content-width, 720px);
+  margin-top: var(--s-6);
+  /* 次级文本色与背景：直接引用主题变量，跟随明暗切换 */
+  --gb-muted: var(--color-ink-2);
+  --gb-muted-bg: var(--color-code-bg);
+  /* 品牌强调色：亮色沿用主题，暗色降为柔和色避免刺眼 */
+  --gb-brand: var(--color-brand, #9b2226);
+  --gb-brand-soft: var(--color-brand-soft, #f5e8e8);
+}
+
+/* 跟随主题暗色：system 暗色 + 手动 data-theme="dark" */
+/* 强制暗色：优先于媒体查询 */
+:root[data-theme="dark"] .guestbook-section {
+  --gb-brand: #cd6565;
+  --gb-brand-soft: rgba(205, 101, 101, 0.16);
+}
+/* 跟随系统暗色：仅当系统为暗色且未手动指定亮色时才生效，
+   与 style.css 中 --color-* 的暗色判定保持一致，避免亮色系统下无 data-theme 时误判为黑底 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .guestbook-section {
+    --gb-brand: #cd6565;
+    --gb-brand-soft: rgba(205, 101, 101, 0.16);
+  }
+}
+
+.guestbook-section-title {
+  margin-bottom: var(--s-4, 16px);
+  font-size: var(--text-h2, 20px);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-ink, #33332f);
+  font-family: var(--font-serif-heading);
+  letter-spacing: var(--tracking-wide, 0.02em);
+  padding-bottom: var(--s-2, 8px);
+  border-bottom: 1px solid var(--color-line-light, #e8e7e4);
+}
+
+.guestbook-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4, 16px);
+}
+
+.guestbook-loading,
+.guestbook-empty {
+  padding: 40px 0;
+  color: var(--gb-muted, #777);
+  text-align: center;
+  font-size: var(--text-body-sm, 14px);
+}
+
+/* 卡片 */
+.guestbook-item {
+  padding: var(--s-4, 16px) var(--s-5, 24px);
+  background: var(--color-surface, #fafaf8);
+  border: var(--border-width, 1px) solid var(--color-line, #dddcd8);
+  border-radius: var(--r-md, 8px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: border-color var(--duration-fast, 150ms), box-shadow var(--duration-fast, 150ms);
+}
+
+.guestbook-item:hover {
+  border-color: var(--gb-brand, #9b2226);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* 卡片头部：昵称 + 来源 + 时间 */
+.guestbook-item-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3, 12px);
+  flex-wrap: wrap;
+}
+
+.guestbook-item-name {
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-ink, #33332f);
+  font-size: var(--text-body-sm, 14px);
+}
+
+/* 访客站点链接 */
+.guestbook-item-site {
+  font-size: var(--text-caption, 12px);
+  color: var(--gb-brand, #9b2226);
+  text-decoration: none;
+  border-bottom: 1px dashed currentColor;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guestbook-item-site:hover {
+  border-bottom-style: solid;
+}
+
+/* 来源标签 */
+.guestbook-item-source {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s-1, 4px) var(--s-2, 8px);
+  font-size: var(--text-caption, 12px);
+  border-radius: 999px;
+  background: var(--gb-brand-soft, #f5e8e8);
+  color: var(--gb-brand, #9b2226);
+  line-height: 1.6;
+}
+
+/* 时间：置右 */
+.guestbook-item-time {
+  margin-left: auto;
+  font-size: var(--text-caption, 12px);
+  color: var(--gb-muted, #999);
+}
+
+/* 卡片正文 */
+.guestbook-item-body {
+  margin-top: var(--s-3, 12px);
+  font-size: var(--text-body-sm, 14px);
+  line-height: var(--leading-normal, 1.75);
+  color: var(--color-ink, #33332f);
+  word-break: break-word;
+}
+
+/* 博主回复块 */
+.guestbook-replies {
+  margin-top: var(--s-3, 12px);
+}
+
+.guestbook-reply {
+  padding: var(--s-3, 12px) var(--s-4, 16px);
+  background: var(--gb-brand-soft, #f5e8e8);
+  border-left: 3px solid var(--gb-brand, #9b2226);
+  border-radius: var(--r-sm, 6px);
+}
+
+.guestbook-reply + .guestbook-reply {
+  margin-top: var(--s-2, 8px);
+}
+
+.guestbook-reply.guestbook-reply-inbound {
+  background: var(--gb-reply-soft, #e8f2ec);
+  border-left-color: var(--gb-reply, #2f7d50);
+}
+
+.guestbook-reply-inbound .guestbook-reply-badge {
+  background: var(--gb-reply, #2f7d50);
+}
+
+.guestbook-reply-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2, 8px);
+}
+
+.guestbook-reply-badge {
+  padding: var(--s-1, 4px) var(--s-2, 8px);
+  font-size: var(--text-caption, 12px);
+  border-radius: 999px;
+  background: var(--gb-brand, #9b2226);
+  color: #fff;
+  line-height: 1.6;
+}
+
+.guestbook-reply-time {
+  font-size: var(--text-caption, 12px);
+  color: var(--gb-muted, #999);
+}
+
+.guestbook-reply-body {
+  margin-top: var(--s-2, 8px);
+  font-size: var(--text-body-sm, 14px);
+  line-height: var(--leading-normal, 1.75);
+  color: var(--color-ink, #33332f);
+  word-break: break-word;
+}
+
+.guestbook-item-body p {
+  margin: 0 0 var(--s-2, 8px);
+}
+
+.guestbook-item-body p:last-child {
+  margin-bottom: 0;
+}
+
+.guestbook-reply-body p {
+  margin: 0 0 var(--s-2, 8px);
+}
+
+.guestbook-reply-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* 列表：文字与正文左缘对齐，符号仅缩进一个标记位 */
+.guestbook-item-body ul,
+.guestbook-item-body ol {
+  margin: 0 0 var(--s-2, 8px);
+  padding-left: 1.3em;
+  color: var(--color-ink, #33332f);
+}
+
+.guestbook-item-body li {
+  margin: 2px 0;
+}
+
+.guestbook-item-body ul ul,
+.guestbook-item-body ol ol,
+.guestbook-item-body ul ol,
+.guestbook-item-body ol ul {
+  margin-bottom: 0;
+}
+
+/* 引用 */
+.guestbook-item-body blockquote {
+  margin: var(--s-2, 8px) 0;
+  padding: 4px var(--s-3, 12px);
+  border-left: 3px solid var(--gb-brand, #9b2226);
+  background: var(--gb-muted-bg, #ecebe8);
+  border-radius: 0 var(--r-sm, 6px) var(--r-sm, 6px) 0;
+  color: var(--color-ink, #33332f);
+}
+
+/* 代码 */
+.guestbook-item-body code {
+  padding: 1px 5px;
+  background: var(--color-code-bg, #ecebe8);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--text-code, 15px);
+}
+
+.guestbook-item-body pre {
+  margin: var(--s-2, 8px) 0;
+  padding: var(--s-3, 12px);
+  overflow-x: auto;
+  background: var(--color-code-bg, #ecebe8);
+  border-radius: var(--r-md, 8px);
+}
+
+.guestbook-item-body pre code {
+  padding: 0;
+  background: none;
+  white-space: pre;
+}
+
+.guestbook-item-body a {
+  color: var(--color-brand, #9b2226);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.guestbook-pagination {
+  margin-top: var(--s-4, 16px);
+  text-align: center;
+}
+
+.guestbook-page-btn {
+  padding: var(--s-2, 8px) var(--s-5, 24px);
+  border: var(--border-width, 1px) solid var(--color-line, #dddcd8);
+  border-radius: var(--r-md, 8px);
+  background: var(--color-surface, #fff);
+  color: var(--color-ink, #33332f);
+  font-size: var(--text-body-sm, 14px);
+  cursor: pointer;
+  transition: border-color var(--duration-fast, 150ms), color var(--duration-fast, 150ms);
+}
+
+.guestbook-page-btn:hover {
+  border-color: var(--color-brand, #9b2226);
+  color: var(--color-brand, #9b2226);
+}
+
+/* 留言表单 */
+.guestbook-form {
+  margin-top: var(--s-5, 24px);
+  padding-top: var(--s-5, 24px);
+  border-top: var(--border-width, 1px) solid var(--color-line-light, #e8e7e4);
+}
+
+.guestbook-form-title {
+  margin-bottom: var(--s-4, 16px);
+  font-size: var(--text-h4, 18px);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-ink, #33332f);
+  font-family: var(--font-serif-heading);
+}
+
+/* 来源关联提示：从文章页跳转时展示 */
+.guestbook-source {
+  margin: calc(-1 * var(--s-2, 8px)) 0 var(--s-4, 16px);
+  font-size: var(--text-body-sm, 14px);
+  color: var(--gb-muted, #999);
+}
+
+.guestbook-source-title {
+  color: var(--color-ink-3, #777);
+}
+
+.guestbook-source-clear {
+  margin-left: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--text-body-sm, 14px);
+  color: var(--gb-muted, #999);
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+
+.guestbook-source-clear:hover {
+  color: var(--color-brand, #9b2226);
+}
+
+/* 昵称 / 邮箱 / 站点地址 三格一行均分 */
+.guestbook-row {
+  display: flex;
+  gap: var(--s-4, 16px);
+}
+
+.guestbook-field {
+  margin-bottom: var(--s-4, 16px);
+}
+
+.guestbook-field--third {
+  flex: 1 1 33.333%;
+  min-width: 0;
+}
+
+.guestbook-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--text-body-sm, 14px);
+  color: var(--color-ink, #33332f);
+}
+
+.guestbook-input {
+  width: 100%;
+  padding: var(--s-2, 8px) var(--s-3, 12px);
+  border: var(--border-width, 1px) solid var(--color-line, #dddcd8);
+  border-radius: var(--r-md, 8px);
+  background: var(--color-surface, #fff);
+  color: var(--color-ink, #33332f);
+  font-size: var(--text-body-sm, 14px);
+  line-height: var(--leading-normal, 1.75);
+  box-sizing: border-box;
+  transition: border-color var(--duration-fast, 150ms), box-shadow var(--duration-fast, 150ms);
+}
+
+.guestbook-input::placeholder {
+  color: var(--gb-muted, #999);
+}
+
+.guestbook-input:focus {
+  outline: none;
+  border-color: var(--color-brand, #9b2226);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand, #9b2226) 15%, transparent);
+}
+
+/* OverType 编辑器容器：高度由内部 autoResize 决定，不设固定值避免底部空白条 */
+.guestbook-editor {
+  border: var(--border-width, 1px) solid var(--color-line, #dddcd8);
+  border-radius: var(--r-md, 8px);
+  overflow: hidden;
+  background: var(--color-surface, #fff);
+  transition: border-color var(--duration-fast, 150ms), box-shadow var(--duration-fast, 150ms);
+}
+
+.guestbook-editor:focus-within {
+  border-color: var(--color-brand, #9b2226);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand, #9b2226) 15%, transparent);
+}
+
+/* OverType 内部样式不做覆盖：Normal 模式为 textarea(透明)+preview 双层叠加，
+   任何字体/颜色干预都会破坏对齐；编辑器自带 solar/cave 主题已随明暗切换 */
+
+/* 例外：Chrome 下原生 ::placeholder 不继承 textarea 的透明色，
+   与库自带的 .overtype-placeholder 双层渲染导致提示文字重叠，需隐藏原生层。
+   同时覆盖说说行内留言的 #mc-editor 容器。 */
+#gb-editor .overtype-input::placeholder,
+#gb-editor textarea::placeholder,
+#mc-editor .overtype-input::placeholder,
+#mc-editor textarea::placeholder {
+  color: transparent !important;
+  opacity: 1 !important;
+}
+
+/* 占位提示按 每行一种格式 展示：库默认折叠换行，强制保留 \n */
+#gb-editor .overtype-placeholder {
+  white-space: pre-wrap;
+  line-height: 1.9;
+}
+
+/* 编辑区内滚动条：细、半透明、随主题，低调不显眼。
+   Chrome/Edge 下标准 scrollbar-width 优先于 ::-webkit-scrollbar 伪元素宽度，
+   故不设置标准 scrollbar-width，仅用 webkit 伪元素控制为 2px；
+   Firefox 不支持 webkit 伪元素，单独以标准属性实现细滚动条。 */
+#gb-editor .overtype-preview::-webkit-scrollbar,
+#gb-editor .overtype-input::-webkit-scrollbar {
+  width: 2px !important;
+  height: 2px !important;
+}
+/* Firefox：仅在不支持 ::-webkit-scrollbar 的浏览器下应用标准属性 */
+@supports not (selector(::-webkit-scrollbar)) {
+  #gb-editor .overtype-preview,
+  #gb-editor .overtype-input {
+    scrollbar-width: thin !important;
+    scrollbar-color: color-mix(in srgb, var(--color-ink, #33332f) 22%, transparent) transparent !important;
+  }
+}
+/* 去除两端箭头按钮，仅保留滑条 */
+#gb-editor .overtype-preview::-webkit-scrollbar-button,
+#gb-editor .overtype-input::-webkit-scrollbar-button {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+#gb-editor .overtype-preview::-webkit-scrollbar-thumb,
+#gb-editor .overtype-input::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-ink, #33332f) 22%, transparent) !important;
+  border-radius: 1px !important;
+}
+#gb-editor .overtype-preview::-webkit-scrollbar-thumb:hover,
+#gb-editor .overtype-input::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-ink, #33332f) 36%, transparent) !important;
+}
+#gb-editor .overtype-preview::-webkit-scrollbar-track,
+#gb-editor .overtype-input::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+/* 空内容（仅占位符）时不显示滚动条，输入内容且溢出时才显示 */
+#gb-editor .overtype-wrapper.gb-editor--empty .overtype-input,
+#gb-editor .overtype-wrapper.gb-editor--empty .overtype-preview {
+  overflow-y: hidden !important;
+}
+
+/* 提交 */
+.guestbook-submit-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4, 16px);
+}
+
+.guestbook-submit {
+  padding: var(--s-2, 8px) var(--s-6, 32px);
+  border: none;
+  border-radius: var(--r-md, 8px);
+  background: var(--color-brand, #9b2226);
+  color: #fff;
+  font-size: var(--text-body-sm, 14px);
+  cursor: pointer;
+  transition: opacity var(--duration-fast, 150ms), transform var(--duration-fast, 150ms);
+}
+
+.guestbook-submit:hover {
+  opacity: 0.85;
+}
+
+/* 暗色下提交按钮改为柔和品牌样式，避免深红底刺眼 */
+:root[data-theme="dark"] .guestbook-submit {
+  background: var(--gb-brand-soft, rgba(212, 154, 154, 0.16));
+  color: var(--gb-brand, #d49a9a);
+  border: 1px solid var(--gb-brand, #d49a9a);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .guestbook-submit {
+    background: var(--gb-brand-soft, rgba(212, 154, 154, 0.16));
+    color: var(--gb-brand, #d49a9a);
+    border: 1px solid var(--gb-brand, #d49a9a);
+  }
+}
+
+.guestbook-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.guestbook-status {
+  font-size: var(--text-body-sm, 14px);
+}
+
+.guestbook-status.info {
+  color: var(--gb-muted, #999);
+}
+
+.guestbook-status.success {
+  color: #27ae60;
+}
+
+.guestbook-status.error {
+  color: var(--color-brand, #c0392b);
+}
+
+/* 移动端：昵称/邮箱/站点地址回退为单列，卡片内边距收窄 */
+@media screen and (max-width: 640px) {
+  .guestbook-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .guestbook-item {
+    padding: var(--s-3, 12px) var(--s-4, 16px);
+  }
+}

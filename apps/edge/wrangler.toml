@@ -1,0 +1,26 @@
+name = "taiping-blog"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "../studio/dist"
+binding = "ASSETS"
+not_found_handling = "none"
+html_handling = "auto-trailing-slash"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "taiping-blog"
+database_id = "local-placeholder"
+migrations_dir = "migrations"
+
+[vars]
+SITE_URL = "http://127.0.0.1:8787"
+SITE_TITLE = "三无亦拾吾"
+SITE_AUTHOR = "徐宋柏"
+SITE_DESCRIPTION = "三无，无住无心无求......；亦，也；拾，捡起，收拾，整理；吾，我。"
+
+[triggers]
+crons = ["0 * * * *"]

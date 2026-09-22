@@ -1,0 +1,2281 @@
+/**
+ * OverType - A lightweight markdown editor library with perfect WYSIWYG alignment
+ * @version 1.0.0
+ * @license MIT
+ */
+
+import { MarkdownParser } from './parser.js';
+import { ShortcutsManager } from './shortcuts.js';
+import { generateStyles } from './styles.js';
+import { getTheme, mergeTheme, solar, themeToCSSVars, resolveAutoTheme } from './themes.js';
+import { Toolbar } from './toolbar.js';
+import { LinkTooltip } from './link-tooltip.js';
+import { IRRenderer } from './ir.js';
+import { defaultToolbarButtons, toolbarButtons as builtinToolbarButtons, moreToolbarButtons } from './toolbar-buttons.js';
+import { OvertypeWindow } from './overtype-window.js';
+import { renderProfessional } from './p1-render.js';
+import { installPasteHTML } from './p2-copy.js';
+import { exportHTML, exportWeChat, exportZhihu, exportPDF } from './p2-export.js';
+
+let _isSafariCache;
+/**
+ * Detect Safari (desktop, iOS, and iPadOS), excluding Chromium/Firefox-on-iOS.
+ * Memoized; guards against non-browser environments.
+ * @returns {boolean}
+ */
+function isSafariBrowser() {
+  if (_isSafariCache !== undefined) return _isSafariCache;
+  _isSafariCache = false;
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || '';
+    _isSafariCache =
+      /^((?!chrome|android|crios|fxios|edg|opr).)*safari/i.test(ua) ||
+      /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1 && /Safari/.test(ua));
+  }
+  return _isSafariCache;
+}
+
+/**
+ * Build action map from toolbar button configurations
+ * @param {Array} buttons - Array of button config objects
+ * @returns {Object} Map of actionId -> action function
+ */
+function buildActionsMap(buttons) {
+  const map = {};
+  (buttons || []).forEach((btn) => {
+    if (!btn || btn.name === 'separator') return;
+    const id = btn.actionId || btn.name;
+    if (btn.action) {
+      map[id] = btn.action;
+    }
+  });
+  return map;
+}
+
+/**
+ * Normalize toolbar buttons for comparison
+ * @param {Array|null} buttons
+ * @returns {Array|null}
+ */
+function normalizeButtons(buttons) {
+  const list = buttons || defaultToolbarButtons;
+  if (!Array.isArray(list)) return null;
+  return list.map((btn) => ({
+    name: btn?.name || null,
+    actionId: btn?.actionId || btn?.name || null,
+    icon: btn?.icon || null,
+    title: btn?.title || null
+  }));
+}
+
+/**
+ * Determine if toolbar button configuration changed
+ * @param {Array|null} prevButtons
+ * @param {Array|null} nextButtons
+ * @returns {boolean}
+ */
+function toolbarButtonsChanged(prevButtons, nextButtons) {
+  const prev = normalizeButtons(prevButtons);
+  const next = normalizeButtons(nextButtons);
+
+  if (prev === null || next === null) return prev !== next;
+  if (prev.length !== next.length) return true;
+
+  for (let i = 0; i < prev.length; i++) {
+    const a = prev[i];
+    const b = next[i];
+    if (a.name !== b.name ||
+        a.actionId !== b.actionId ||
+        a.icon !== b.icon ||
+        a.title !== b.title) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * OverType Editor Class
+ */
+class OverType {
+    // Static properties
+    static instances = new WeakMap();
+    static stylesInjected = false;
+    static globalListenersInitialized = false;
+    static instanceCount = 0;
+    static _autoMediaQuery = null;
+    static _autoMediaListener = null;
+    static _autoInstances = new Set();
+    static _globalAutoTheme = false;
+    static _globalAutoCustomColors = null;
+
+    /**
+     * Constructor - Always returns an array of instances
+     * @param {string|Element|NodeList|Array} target - Target element(s)
+     * @param {Object} options - Configuration options
+     * @returns {Array} Array of OverType instances
+     */
+    constructor(target, options = {}) {
+      const elements = OverType._resolveTargets(target);
+      if (typeof target === 'string' && elements.length === 0) {
+        throw new Error(`No elements found for selector: ${target}`);
+      }
+
+      // Initialize all elements and return array
+      const instances = elements.map(element => {
+        // Full editing-window shell (`medium: 'window'`)
+        if (options.medium === 'window') {
+          element.overTypeInstance = null;
+          const shell = new OvertypeWindow(element, options);
+          element.overtypeShellInstance = shell;
+          return shell;
+        }
+
+        // Check for existing instance
+        if (element.overTypeInstance) {
+          // Re-init existing instance
+          element.overTypeInstance.reinit(options);
+          return element.overTypeInstance;
+        }
+
+        // Create new instance
+        const instance = Object.create(OverType.prototype);
+        instance._init(element, options);
+        element.overTypeInstance = instance;
+        OverType.instances.set(element, instance);
+        return instance;
+      });
+
+      return instances;
+    }
+
+    /**
+     * Internal initialization
+     * @private
+     */
+    _init(element, options = {}) {
+      this.element = element;
+      
+      // Store the original theme option before merging
+      this.instanceTheme = options.theme || null;
+      
+      this.options = this._mergeOptions(options);
+      this.instanceId = ++OverType.instanceCount;
+      this.initialized = false;
+      this._isSafari = isSafariBrowser();
+      this._safariReflowRaf = null;
+
+      // Inject styles if needed
+      OverType.injectStyles();
+
+      // Initialize global listeners
+      OverType.initGlobalListeners();
+
+      // Check for existing OverType DOM structure
+      const container = element.querySelector('.overtype-container');
+      const wrapper = element.querySelector('.overtype-wrapper');
+      if (container || wrapper) {
+        this._recoverFromDOM(container, wrapper);
+      } else {
+        this._buildFromScratch();
+      }
+
+      if (this.instanceTheme === 'auto') {
+        this.setTheme('auto');
+      }
+
+      // Setup shortcuts manager
+      this.shortcuts = new ShortcutsManager(this);
+
+      // Build action map from toolbar buttons (works whether or not toolbar UI is shown)
+      this._rebuildActionsMap();
+
+      // Setup link tooltip
+      this.linkTooltip = new LinkTooltip(this);
+
+      // Sync scroll positions on initial render
+      // This ensures textarea matches preview scroll if page is reloaded while scrolled
+      // Double requestAnimationFrame waits for browser to restore scroll position
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          this.textarea.scrollTop = this.preview.scrollTop;
+          this.textarea.scrollLeft = this.preview.scrollLeft;
+        });
+      });
+
+      // Mark as initialized
+      this.initialized = true;
+
+      // P2: optional HTML->Markdown paste conversion
+      this._pasteHTMLUninstall = this.options.pasteHTML ? installPasteHTML(this) : null;
+
+      // Call onChange if provided
+      if (this.options.onChange) {
+        this._notifyChange();
+      }
+    }
+
+    /**
+     * Merge user options with defaults
+     * @private
+     */
+    _mergeOptions(options) {
+      const defaults = {
+        // Typography
+        fontSize: '14px',
+        lineHeight: 1.6,
+        /* System-first, guaranteed monospaced; avoids Android 'ui-monospace' pitfalls */
+        fontFamily: '"SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace',
+        padding: '16px',
+        
+        // Mobile styles
+        mobile: {
+          fontSize: '16px',  // Prevent zoom on iOS
+          padding: '12px',
+          lineHeight: 1.5
+        },
+        
+        // Native textarea properties
+        textareaProps: {},
+        
+        // Behavior
+        autofocus: false,
+        autoResize: false,  // Auto-expand height with content
+        minHeight: '100px', // Minimum height for autoResize mode
+        maxHeight: null,    // Maximum height for autoResize mode (null = unlimited)
+        placeholder: '开始输入...',
+        value: '',
+        
+        // Callbacks
+        onChange: null,
+        onKeydown: null,
+        onRender: null,
+        onFocus: null,
+        onBlur: null,
+        
+        // Features
+        showActiveLineRaw: false,
+        showStats: false,
+        toolbar: false,
+        toolbarButtons: null,  // Defaults to defaultToolbarButtons if toolbar: true
+        lang: 'zh',  // P3: 工具栏/提示语种（'zh' | 'en'）
+        statsFormatter: null,
+        smartLists: true,  // Enable smart list continuation
+        codeHighlighter: null,  // Per-instance code highlighter
+        spellcheck: false,  // Browser spellcheck (disabled by default)
+        transformLinkUrl: null,  // Transform URLs shown/opened in the link tooltip
+        medium: 'input',  // Editor presentation: 'input' (box) | 'window' (full shell)
+        disableShortcuts: null,  // Array of keys to ignore, e.g. ['b','1']
+        professional: null,  // { math, mermaid, graphviz } - P1 on-demand rendering
+        pasteHTML: false  // P2: convert pasted HTML to Markdown on insert
+      };
+      
+      // Remove theme and colors from options - these are now global
+      const { theme, colors, ...cleanOptions } = options;
+      
+      return {
+        ...defaults,
+        ...cleanOptions
+      };
+    }
+
+    /**
+     * Recover from existing DOM structure
+     * @private
+     */
+    _recoverFromDOM(container, wrapper) {
+      // Handle old structure (wrapper only) or new structure (container + wrapper)
+      if (container && container.classList.contains('overtype-container')) {
+        this.container = container;
+        this.wrapper = container.querySelector('.overtype-wrapper');
+      } else if (wrapper) {
+        // Old structure - just wrapper, no container
+        this.wrapper = wrapper;
+        // Wrap it in a container for consistency
+        this.container = document.createElement('div');
+        this.container.className = 'overtype-container';
+        // Use instance theme if provided, otherwise use global theme
+        const themeToUse = this.instanceTheme || OverType.currentTheme || solar;
+        const themeName = typeof themeToUse === 'string' ? themeToUse : themeToUse.name;
+        if (themeName) {
+          this.container.setAttribute('data-theme', themeName);
+        }
+        
+        // If using instance theme, apply CSS variables to container
+        if (this.instanceTheme) {
+          const themeObj = typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme;
+          if (themeObj && themeObj.colors) {
+            const cssVars = themeToCSSVars(themeObj.colors);
+            this.container.style.cssText += cssVars;
+          }
+        }
+        wrapper.parentNode.insertBefore(this.container, wrapper);
+        this.container.appendChild(wrapper);
+      }
+      
+      if (!this.wrapper) {
+        // No valid structure found
+        if (container) container.remove();
+        if (wrapper) wrapper.remove();
+        this._buildFromScratch();
+        return;
+      }
+      
+      this.textarea = this.wrapper.querySelector('.overtype-input');
+      this.preview = this.wrapper.querySelector('.overtype-preview');
+
+      if (!this.textarea || !this.preview) {
+        // Partial DOM - clear and rebuild
+        this.container.remove();
+        this._buildFromScratch();
+        return;
+      }
+
+      // Store reference on wrapper
+      this.wrapper._instance = this;
+      
+      this._applyInstanceCSSVars();
+
+      // Disable autofill, spellcheck, and extensions
+      this._configureTextarea();
+      this._ensureTextareaId();
+
+      this._syncPreviewInteractivity();
+
+      // Apply any new options
+      this._applyOptions();
+    }
+
+    /**
+     * Build editor from scratch
+     * @private
+     */
+    _buildFromScratch() {
+      // Extract any existing content
+      const content = this._extractContent();
+
+      // Clear element
+      this.element.innerHTML = '';
+
+      // Create DOM structure
+      this._createDOM();
+
+      // Set initial content
+      if (content || this.options.value) {
+        this.setValue(content || this.options.value);
+      }
+
+      // Apply options
+      this._applyOptions();
+    }
+
+    /**
+     * Extract content from element
+     * @private
+     */
+    _extractContent() {
+      // Look for existing OverType textarea
+      const textarea = this.element.querySelector('.overtype-input');
+      if (textarea) return textarea.value;
+
+      // Use element's text content as fallback
+      return this.element.textContent || '';
+    }
+
+    /**
+     * Create DOM structure
+     * @private
+     */
+    _createDOM() {
+      // Create container that will hold toolbar and editor
+      this.container = document.createElement('div');
+      this.container.className = 'overtype-container';
+      
+      // Set theme on container - use instance theme if provided
+      const themeToUse = this.instanceTheme || OverType.currentTheme || solar;
+      const themeName = typeof themeToUse === 'string' ? themeToUse : themeToUse.name;
+      if (themeName) {
+        this.container.setAttribute('data-theme', themeName);
+      }
+      
+      // If using instance theme, apply CSS variables to container
+      if (this.instanceTheme) {
+        const themeObj = typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme;
+        if (themeObj && themeObj.colors) {
+          const cssVars = themeToCSSVars(themeObj.colors);
+          this.container.style.cssText += cssVars;
+        }
+      }
+      
+      // Create wrapper for editor
+      this.wrapper = document.createElement('div');
+      this.wrapper.className = 'overtype-wrapper';
+      
+      
+      this._applyInstanceCSSVars();
+
+      this.wrapper._instance = this;
+
+      // Create textarea
+      this.textarea = document.createElement('textarea');
+      this.textarea.className = 'overtype-input';
+      this.textarea.placeholder = this.options.placeholder;
+      this._configureTextarea();
+      
+      // Apply any native textarea properties
+      if (this.options.textareaProps) {
+        Object.entries(this.options.textareaProps).forEach(([key, value]) => {
+          if (key === 'className' || key === 'class') {
+            this.textarea.className += ' ' + value;
+          } else if (key === 'style' && typeof value === 'object') {
+            Object.assign(this.textarea.style, value);
+          } else {
+            this.textarea.setAttribute(key, value);
+          }
+        });
+      }
+
+      this._ensureTextareaId();
+
+      // Create preview div
+      this.preview = document.createElement('div');
+      this.preview.className = 'overtype-preview';
+      this.preview.setAttribute('aria-hidden', 'true');
+
+      // Create placeholder shim
+      this.placeholderEl = document.createElement('div');
+      this.placeholderEl.className = 'overtype-placeholder';
+      this.placeholderEl.setAttribute('aria-hidden', 'true');
+      this.placeholderEl.textContent = this.options.placeholder;
+
+      // Assemble DOM
+      this.wrapper.appendChild(this.textarea);
+      this.wrapper.appendChild(this.preview);
+      this.wrapper.appendChild(this.placeholderEl);
+      
+      // No need to prevent link clicks - pointer-events handles this
+      
+      // Add wrapper to container first
+      this.container.appendChild(this.wrapper);
+      
+      // Add stats bar at the end (bottom) if enabled
+      if (this.options.showStats) {
+        this.statsBar = document.createElement('div');
+        this.statsBar.className = 'overtype-stats';
+        this.container.appendChild(this.statsBar);
+        this._updateStats();
+      }
+      
+      // Add container to element
+      this.element.appendChild(this.container);
+      
+      // Setup auto-resize if enabled
+      if (this.options.autoResize) {
+        this._setupAutoResize();
+      } else {
+        // Ensure auto-resize class is removed if not using auto-resize
+        this.container.classList.remove('overtype-auto-resize');
+      }
+
+      this._syncPreviewInteractivity();
+    }
+
+    /**
+     * Configure textarea attributes
+     * @private
+     */
+    _configureTextarea() {
+      this.textarea.setAttribute('autocomplete', 'off');
+      this.textarea.setAttribute('autocorrect', 'off');
+      this.textarea.setAttribute('autocapitalize', 'off');
+      this.textarea.setAttribute('spellcheck', String(this.options.spellcheck));
+      this.textarea.setAttribute('data-gramm', 'false');
+      this.textarea.setAttribute('data-gramm_editor', 'false');
+      this.textarea.setAttribute('data-enable-grammarly', 'false');
+    }
+
+    /**
+     * Ensure the textarea can be referenced by aria-controls
+     * @private
+     */
+    _ensureTextareaId() {
+      if (!this.textarea.id) {
+        this.textarea.id = `overtype-${this.instanceId}-input`;
+      }
+    }
+
+    /**
+     * Keep rendered preview content out of keyboard navigation until Preview mode.
+     * @private
+     */
+    _syncPreviewInteractivity() {
+      if (!this.preview || !this.container) return;
+
+      const isPreviewMode = this.container.dataset.mode === 'preview';
+      this.preview.inert = !isPreviewMode;
+      this.preview.toggleAttribute('inert', !isPreviewMode);
+
+      if (isPreviewMode) {
+        this.preview.removeAttribute('aria-hidden');
+        return;
+      }
+
+      this.preview.setAttribute('aria-hidden', 'true');
+    }
+
+    /**
+     * Create and setup toolbar
+     * @private
+     */
+    _createToolbar() {
+      let toolbarButtons = this.options.toolbarButtons || defaultToolbarButtons;
+
+      if (this.options.fileUpload?.enabled && !toolbarButtons.some(b => b?.name === 'upload')) {
+        const viewModeIdx = toolbarButtons.findIndex(b => b?.name === 'viewMode');
+        if (viewModeIdx !== -1) {
+          toolbarButtons = [...toolbarButtons];
+          toolbarButtons.splice(viewModeIdx, 0, builtinToolbarButtons.separator, builtinToolbarButtons.upload);
+        } else {
+          toolbarButtons = [...toolbarButtons, builtinToolbarButtons.separator, builtinToolbarButtons.upload];
+        }
+      }
+
+      this.toolbar = new Toolbar(this, { toolbarButtons, lang: this.options.lang });
+      this.toolbar.create();
+
+
+      // Store listener references for cleanup
+      this._toolbarSelectionListener = () => {
+        if (this.toolbar) {
+          this.toolbar.updateButtonStates();
+        }
+      };
+      this._toolbarInputListener = () => {
+        if (this.toolbar) {
+          this.toolbar.updateButtonStates();
+        }
+      };
+
+      // Add listeners
+      this.textarea.addEventListener('selectionchange', this._toolbarSelectionListener);
+      this.textarea.addEventListener('input', this._toolbarInputListener);
+    }
+
+    /**
+     * Cleanup toolbar event listeners
+     * @private
+     */
+    _cleanupToolbarListeners() {
+      if (this._toolbarSelectionListener) {
+        this.textarea.removeEventListener('selectionchange', this._toolbarSelectionListener);
+        this._toolbarSelectionListener = null;
+      }
+      if (this._toolbarInputListener) {
+        this.textarea.removeEventListener('input', this._toolbarInputListener);
+        this._toolbarInputListener = null;
+      }
+    }
+
+    /**
+     * Rebuild the action map from current toolbar button configuration
+     * Called during init and reinit to keep shortcuts in sync with toolbar buttons
+     * @private
+     */
+    _rebuildActionsMap() {
+      // Always start with default actions (shortcuts always work regardless of toolbar config)
+      this.actionsById = buildActionsMap(defaultToolbarButtons);
+
+      // 「更多」面板扩展项（P3）同样可被快捷键/performAction 调用
+      Object.assign(this.actionsById, buildActionsMap(moreToolbarButtons));
+
+      // Overlay custom toolbar actions (can add/override, but never remove core actions)
+      if (this.options.toolbarButtons) {
+        Object.assign(this.actionsById, buildActionsMap(this.options.toolbarButtons));
+      }
+
+      // Register upload action when file upload is enabled
+      if (this.options.fileUpload?.enabled) {
+        Object.assign(this.actionsById, buildActionsMap([builtinToolbarButtons.upload]));
+      }
+    }
+
+    /**
+     * Apply instance-specific styles via CSS custom properties on the wrapper.
+     * Called from init paths and from _applyOptions so reinit() propagates
+     * font/padding changes.
+     * @private
+     */
+    _applyInstanceCSSVars() {
+      if (!this.wrapper) return;
+      if (this.options.fontSize) {
+        this.wrapper.style.setProperty('--instance-font-size', this.options.fontSize);
+      }
+      if (this.options.lineHeight) {
+        this.wrapper.style.setProperty('--instance-line-height', String(this.options.lineHeight));
+      }
+      if (this.options.padding) {
+        this.wrapper.style.setProperty('--instance-padding', this.options.padding);
+      }
+      if (this.options.fontFamily) {
+        this.wrapper.style.setProperty('--instance-font-family', this.options.fontFamily);
+      }
+    }
+
+    /**
+     * Apply options to the editor
+     * @private
+     */
+    _applyOptions() {
+      // Re-apply instance-specific CSS vars so reinit() picks up font/padding changes
+      this._applyInstanceCSSVars();
+
+      // Apply autofocus
+      if (this.options.autofocus) {
+        this.textarea.focus();
+      }
+
+      // Setup or remove auto-resize
+      if (this.options.autoResize) {
+        if (!this.container.classList.contains('overtype-auto-resize')) {
+          this._setupAutoResize();
+        } else {
+          this._updateAutoHeight();
+        }
+      } else {
+        // Ensure auto-resize class is removed
+        this.container.classList.remove('overtype-auto-resize');
+      }
+
+      // Handle toolbar option changes
+      if (this.options.toolbar && !this.toolbar) {
+        // Create toolbar if enabled and doesn't exist
+        this._createToolbar();
+      } else if (!this.options.toolbar && this.toolbar) {
+        // Destroy toolbar if disabled and exists
+        this._cleanupToolbarListeners();
+        this.toolbar.destroy();
+        this.toolbar = null;
+      }
+
+      // Update placeholder text
+      if (this.placeholderEl) {
+        this.placeholderEl.textContent = this.options.placeholder;
+      }
+
+      // Setup or remove file upload
+      if (this.options.fileUpload && !this.fileUploadInitialized) {
+        this._initFileUpload();
+      } else if (!this.options.fileUpload && this.fileUploadInitialized) {
+        this._destroyFileUpload();
+      }
+
+      // Update preview with initial content
+      this.updatePreview();
+    }
+
+    _initFileUpload() {
+      const options = this.options.fileUpload;
+      if (!options || !options.enabled) return;
+
+      options.maxSize = options.maxSize || 10 * 1024 * 1024;
+      options.mimeTypes = options.mimeTypes || [];
+      options.batch = options.batch || false;
+      if (!options.onInsertFile || typeof options.onInsertFile !== 'function') {
+        console.warn('OverType: fileUpload.onInsertFile callback is required for file uploads.');
+        return;
+      }
+
+      this._fileUploadCounter = 0;
+      this._uploadedFiles = new Map(); // url -> { filename, file }
+      this._boundHandleFilePaste = this._handleFilePaste.bind(this);
+      this._boundHandleFileDrop = this._handleFileDrop.bind(this);
+      this._boundHandleDragOver = this._handleDragOver.bind(this);
+
+      this.textarea.addEventListener('paste', this._boundHandleFilePaste);
+      this.textarea.addEventListener('drop', this._boundHandleFileDrop);
+      this.textarea.addEventListener('dragover', this._boundHandleDragOver);
+
+      this.fileUploadInitialized = true;
+    }
+
+    /**
+     * Extract URLs from markdown link syntax: [text](url) or ![text](url).
+     * @private
+     */
+    _extractMarkdownUrls(text) {
+      const urls = [];
+      const re = /!?\[[^\]]*\]\(([^)\s]+)/g;
+      let m;
+      while ((m = re.exec(text)) !== null) urls.push(m[1]);
+      return urls;
+    }
+
+    /**
+     * Track URLs that were just inserted, pairing each with the source File.
+     * If multiple URLs appear in one inserted block, all get associated with
+     * the same file (rare; happens if onInsertFile returns several links).
+     * @private
+     */
+    _trackInsertedUrls(insertedText, file) {
+      if (!this._uploadedFiles || !file || !insertedText) return;
+      for (const url of this._extractMarkdownUrls(insertedText)) {
+        this._uploadedFiles.set(url, { filename: file.name, file });
+      }
+    }
+
+    /**
+     * Diff the tracked-URL set against the current value and fire
+     * fileUpload.onRemoveFile for any URL no longer present.
+     * @private
+     */
+    _checkForRemovedUploads() {
+      if (!this._uploadedFiles || this._uploadedFiles.size === 0) return;
+      const cb = this.options.fileUpload?.onRemoveFile;
+      const value = this.getValue();
+      const removed = [];
+      for (const [url, info] of this._uploadedFiles) {
+        if (!value.includes(url)) removed.push({ url, info });
+      }
+      for (const { url, info } of removed) {
+        this._uploadedFiles.delete(url);
+        if (cb) cb({ url, filename: info.filename, file: info.file });
+      }
+    }
+
+    _handleFilePaste(e) {
+      if (!e?.clipboardData?.files?.length) return;
+      e.preventDefault();
+      this._handleDataTransfer(e.clipboardData);
+    }
+
+    _handleFileDrop(e) {
+      if (!e?.dataTransfer?.files?.length) return;
+      e.preventDefault();
+      this._handleDataTransfer(e.dataTransfer);
+    }
+
+    _handleDataTransfer(dataTransfer) {
+      const files = [];
+      for (const file of dataTransfer.files) {
+        if (file.size > this.options.fileUpload.maxSize) continue;
+        if (this.options.fileUpload.mimeTypes.length > 0
+          && !this.options.fileUpload.mimeTypes.includes(file.type)) continue;
+
+        const id = ++this._fileUploadCounter;
+        const prefix = file.type.startsWith('image/') ? '!' : '';
+        const placeholder = `${prefix}[Uploading ${file.name} (#${id})...]()`;
+        this.insertAtCursor(`${placeholder}\n`);
+
+        if (this.options.fileUpload.batch) {
+          files.push({ file, placeholder });
+          continue;
+        }
+
+        this.options.fileUpload.onInsertFile(file).then((text) => {
+          this.textarea.value = this.textarea.value.replace(placeholder, text);
+          this._trackInsertedUrls(text, file);
+          this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }, (error) => {
+          console.error('OverType: File upload failed', error);
+          this.textarea.value = this.textarea.value.replace(placeholder, '[Upload failed]()');
+          this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+
+      if (this.options.fileUpload.batch && files.length > 0) {
+        this.options.fileUpload.onInsertFile(files.map(f => f.file)).then((result) => {
+          const texts = Array.isArray(result) ? result : [result];
+          texts.forEach((text, index) => {
+            this.textarea.value = this.textarea.value.replace(files[index].placeholder, text);
+            this._trackInsertedUrls(text, files[index].file);
+          });
+          this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }, (error) => {
+          console.error('OverType: File upload failed', error);
+          files.forEach(({ placeholder }) => {
+            this.textarea.value = this.textarea.value.replace(placeholder, '[Upload failed]()');
+          });
+          this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+    }
+
+    _handleDragOver(e) {
+      e.preventDefault();
+    }
+
+    _destroyFileUpload() {
+      this.textarea.removeEventListener('paste', this._boundHandleFilePaste);
+      this.textarea.removeEventListener('drop', this._boundHandleFileDrop);
+      this.textarea.removeEventListener('dragover', this._boundHandleDragOver);
+      this._boundHandleFilePaste = null;
+      this._boundHandleFileDrop = null;
+      this._boundHandleDragOver = null;
+      this._uploadedFiles = null;
+      this.fileUploadInitialized = false;
+    }
+
+    insertAtCursor(text) {
+      const start = this.textarea.selectionStart;
+      const end = this.textarea.selectionEnd;
+
+      let inserted = false;
+      try {
+        inserted = document.execCommand('insertText', false, text);
+      } catch (_) {}
+
+      if (!inserted) {
+        const before = this.textarea.value.slice(0, start);
+        const after = this.textarea.value.slice(end);
+        this.textarea.value = before + text + after;
+        this.textarea.setSelectionRange(start + text.length, start + text.length);
+      }
+
+      this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    /**
+     * Update preview with parsed markdown
+     */
+    updatePreview() {
+      // IR mode has its own render pipeline
+      if (this.container && this.container.dataset.mode === 'ir' && this.ir) {
+        this.ir.render();
+        return;
+      }
+
+      const text = this.textarea.value;
+      const cursorPos = this.textarea.selectionStart;
+      const activeLine = this._getCurrentLine(text, cursorPos);
+
+      // Detect if we're in preview mode
+      const isPreviewMode = this.container.dataset.mode === 'preview';
+
+      // Parse markdown
+      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode);
+      this.preview.innerHTML = html;
+
+      // Show/hide placeholder shim
+      if (this.placeholderEl) {
+        this.placeholderEl.style.display = text ? 'none' : '';
+      }
+      
+      // Apply code block backgrounds
+      this._applyCodeBlockBackgrounds();
+      
+      // Links always have real hrefs now - no need to update them
+      
+      // Update stats if enabled
+      if (this.options.showStats && this.statsBar) {
+        this._updateStats();
+      }
+      
+      // Trigger onRender callback
+      if (this.options.onRender) {
+        this.options.onRender(this.preview, isPreviewMode ? 'preview' : 'normal', this);
+      }
+
+      // P1 professional rendering (KaTeX / Mermaid / Graphviz), on demand
+      if (this.options.professional) {
+        renderProfessional(this.preview, this.options);
+      }
+    }
+
+    /**
+     * Notify listeners that the editor value changed
+     * @private
+     */
+    _notifyChange() {
+      if (!this.initialized) return;
+      this._checkForRemovedUploads();
+      if (this.options.onChange) {
+        this.options.onChange(this.getValue(), this);
+      }
+    }
+
+    /**
+     * Apply background styling to code blocks
+     * @private
+     */
+    _applyCodeBlockBackgrounds() {
+      // Find all code fence elements
+      const codeFences = this.preview.querySelectorAll('.code-fence');
+      
+      // Process pairs of code fences
+      for (let i = 0; i < codeFences.length - 1; i += 2) {
+        const openFence = codeFences[i];
+        const closeFence = codeFences[i + 1];
+        
+        // Get parent divs
+        const openParent = openFence.parentElement;
+        const closeParent = closeFence.parentElement;
+        
+        if (!openParent || !closeParent) continue;
+        
+        // Make fences display: block
+        openFence.style.display = 'block';
+        closeFence.style.display = 'block';
+        
+        // Apply class to parent divs
+        openParent.classList.add('code-block-line');
+        closeParent.classList.add('code-block-line');
+        
+        // With the new structure, there's a <pre> block between fences, not DIVs
+        // We don't need to process anything between the fences anymore
+        // The <pre><code> structure already handles the content correctly
+      }
+    }
+
+    /**
+     * Get current line number from cursor position
+     * @private
+     */
+    _getCurrentLine(text, cursorPos) {
+      const lines = text.substring(0, cursorPos).split('\n');
+      return lines.length - 1;
+    }
+
+    /**
+     * Handle input events
+     * @private
+     */
+    handleInput(event) {
+      if (this.container && this.container.dataset.mode === 'ir' && this.ir) {
+        this.ir.handleInput(event);
+        this._notifyChange();
+        return;
+      }
+      this.updatePreview();
+      this._notifyChange();
+      this._scheduleSafariReflow();
+    }
+
+    /**
+     * Force Safari to re-shape stale textarea text after an edit.
+     * Safari can leave a textarea's glyph layout cached after incremental edits,
+     * desyncing the caret/wrap from the styled preview overlay. Toggling
+     * letter-spacing (with !important to beat the stylesheet rule) and reading
+     * offsetHeight forces a synchronous re-shape. Safari-only, coalesced to one
+     * run per animation frame.
+     * @private
+     */
+    _scheduleSafariReflow() {
+      if (!this._isSafari || this._safariReflowRaf) return;
+      this._safariReflowRaf = requestAnimationFrame(() => {
+        this._safariReflowRaf = null;
+        const ta = this.textarea;
+        if (!ta) return;
+        ta.style.setProperty('letter-spacing', '-0.001px', 'important');
+        void ta.offsetHeight;
+        ta.style.removeProperty('letter-spacing');
+      });
+    }
+
+    /**
+     * Handle focus events
+     * @private
+     */
+    handleFocus(event) {
+      if (this.options.onFocus) {
+        this.options.onFocus(event, this);
+      }
+    }
+
+    /**
+     * Handle blur events
+     * @private
+     */
+    handleBlur(event) {
+      if (this.options.onBlur) {
+        this.options.onBlur(event, this);
+      }
+    }
+
+    /**
+     * Handle keydown events
+     * @private
+     */
+    handleKeydown(event) {
+      // IR mode block-level keys (Enter / Backspace / arrows) come first
+      if (this.container && this.container.dataset.mode === 'ir' && this.ir) {
+        if (this.ir.handleKeydown(event)) return;
+      }
+
+      // Let collapsed Tab/Shift+Tab use native focus traversal.
+      if (event.key === 'Tab') {
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+
+        if (start !== end && this._canEditTextarea()) {
+          event.preventDefault();
+          event.shiftKey ? this.outdentSelection() : this.indentSelection();
+          return;
+        }
+      }
+      
+      // Handle Enter key for smart list continuation
+      if (event.key === 'Enter' && !event.shiftKey && !event.metaKey && !event.ctrlKey && this.options.smartLists) {
+        if (this.handleSmartListContinuation()) {
+          event.preventDefault();
+          return;
+        }
+      }
+      
+      // Let shortcuts manager handle other keys (subject to disableShortcuts)
+      const disabled = this.options.disableShortcuts;
+      const isMac = navigator.platform && navigator.platform.toLowerCase().includes('mac');
+      const mod = isMac ? event.metaKey : event.ctrlKey;
+      const hit =
+        disabled && disabled.some(k =>
+          (k.toLowerCase() === event.key.toLowerCase()) ||
+          (/^[1-6]$/.test(k) && event.code === 'Digit' + k) ||
+          (/^Digit[1-6]$/.test(k) && k.slice(-1) === event.key)
+        );
+      let handled = false;
+      if (mod && !hit) {
+        handled = this.shortcuts.handleKeydown(event);
+      }
+
+      // Call user callback if provided
+      if (!handled && this.options.onKeydown) {
+        this.options.onKeydown(event, this);
+      }
+    }
+
+    /**
+     * Handle smart list continuation
+     * @returns {boolean} Whether the event was handled
+     */
+    handleSmartListContinuation() {
+      const textarea = this.textarea;
+      const cursorPos = textarea.selectionStart;
+      const context = MarkdownParser.getListContext(textarea.value, cursorPos);
+      
+      if (!context || !context.inList) return false;
+      
+      // Handle empty list item (exit list)
+      if (context.content.trim() === '' && cursorPos >= context.markerEndPos) {
+        this.deleteListMarker(context);
+        return true;
+      }
+      
+      // Handle text splitting if cursor is in middle of content
+      if (cursorPos > context.markerEndPos && cursorPos < context.lineEnd) {
+        this.splitListItem(context, cursorPos);
+      } else {
+        // Just add new item after current line
+        this.insertNewListItem(context);
+      }
+      
+      // Handle numbered list renumbering
+      if (context.listType === 'numbered') {
+        this.scheduleNumberedListUpdate();
+      }
+      
+      return true;
+    }
+    
+    /**
+     * Delete list marker and exit list
+     * @private
+     */
+    deleteListMarker(context) {
+      // Select from line start to marker end
+      this.textarea.setSelectionRange(context.lineStart, context.markerEndPos);
+      document.execCommand('delete');
+      
+      // Trigger input event
+      this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    /**
+     * Insert new list item
+     * @private
+     */
+    insertNewListItem(context) {
+      const newItem = MarkdownParser.createNewListItem(context);
+      document.execCommand('insertText', false, '\n' + newItem);
+      
+      // Trigger input event
+      this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    /**
+     * Split list item at cursor position
+     * @private
+     */
+    splitListItem(context, cursorPos) {
+      // Get text after cursor
+      const textAfterCursor = context.content.substring(cursorPos - context.markerEndPos);
+      
+      // Delete text after cursor
+      this.textarea.setSelectionRange(cursorPos, context.lineEnd);
+      document.execCommand('delete');
+      
+      // Insert new list item with remaining text
+      const newItem = MarkdownParser.createNewListItem(context);
+      document.execCommand('insertText', false, '\n' + newItem + textAfterCursor);
+      
+      // Position cursor after new list marker
+      const newCursorPos = this.textarea.selectionStart - textAfterCursor.length;
+      this.textarea.setSelectionRange(newCursorPos, newCursorPos);
+      
+      // Trigger input event
+      this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    /**
+     * Schedule numbered list renumbering
+     * @private
+     */
+    scheduleNumberedListUpdate() {
+      // Clear any pending update
+      if (this.numberUpdateTimeout) {
+        clearTimeout(this.numberUpdateTimeout);
+      }
+      
+      // Schedule update after current input cycle
+      this.numberUpdateTimeout = setTimeout(() => {
+        this.updateNumberedLists();
+      }, 10);
+    }
+    
+    /**
+     * Update/renumber all numbered lists
+     * @private
+     */
+    updateNumberedLists() {
+      const value = this.textarea.value;
+      const cursorPos = this.textarea.selectionStart;
+      
+      const newValue = MarkdownParser.renumberLists(value);
+      
+      if (newValue !== value) {
+        // Calculate cursor offset
+        let offset = 0;
+        const oldLines = value.split('\n');
+        const newLines = newValue.split('\n');
+        let charCount = 0;
+        
+        for (let i = 0; i < oldLines.length && charCount < cursorPos; i++) {
+          if (oldLines[i] !== newLines[i]) {
+            const diff = newLines[i].length - oldLines[i].length;
+            if (charCount + oldLines[i].length < cursorPos) {
+              offset += diff;
+            }
+          }
+          charCount += oldLines[i].length + 1; // +1 for newline
+        }
+        
+        // Update textarea
+        this.textarea.value = newValue;
+        const newCursorPos = cursorPos + offset;
+        this.textarea.setSelectionRange(newCursorPos, newCursorPos);
+        
+        // Trigger update
+        this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+
+    /**
+     * Handle scroll events
+     * @private
+     */
+    handleScroll(event) {
+      // IR mode: the textarea is block-scoped, nothing to sync
+      if (this.container && this.container.dataset.mode === 'ir') return;
+      // Sync preview scroll with textarea
+      this.preview.scrollTop = this.textarea.scrollTop;
+      this.preview.scrollLeft = this.textarea.scrollLeft;
+    }
+
+    /**
+     * Get editor content
+     * @returns {string} Current markdown content
+     */
+    getValue() {
+      if (this.container && this.container.dataset.mode === 'ir' && this.ir) {
+        return this.ir.getValue();
+      }
+      return this.textarea.value;
+    }
+
+    /**
+     * Set editor content
+     * @param {string} value - Markdown content to set
+     */
+    setValue(value) {
+      if (this.container && this.container.dataset.mode === 'ir' && this.ir) {
+        const didChange = this.getValue() !== value;
+        this.ir.setValue(value);
+        if (this.options.autoResize) {
+          this._updateAutoHeight();
+        }
+        if (didChange) {
+          this._notifyChange();
+        }
+        return;
+      }
+      const didChange = this.textarea.value !== value;
+      this.textarea.value = value;
+      this.updatePreview();
+
+      // Update height if auto-resize is enabled
+      if (this.options.autoResize) {
+        this._updateAutoHeight();
+      }
+
+      if (didChange) {
+        this._notifyChange();
+        this._scheduleSafariReflow();
+      }
+    }
+
+    /**
+     * Return a read-only syntax tree (AST) of the current markdown content.
+     * Convenience wrapper around MarkdownParser.buildTree, respecting IR mode.
+     * @returns {object} { type:'document', children: [...] }
+     */
+    getSyntaxTree() {
+      return MarkdownParser.buildTree(this.getValue());
+    }
+
+    /**
+     * Get editor statistics.
+     * Field names follow the Stats contract declared in overtype.d.ts
+     * (chars, not characters).
+     * @returns {{words:number, chars:number, lines:number, line:number, column:number}|null}
+     */
+    getStats() {
+      const value = this.getValue();
+      if (value == null) return null;
+
+      const lines = value.split('\n');
+      const words = value.split(/\s+/).filter((w) => w.length > 0).length;
+
+      // 光标行列取自 textarea 选区；IR 模式下 textarea 可能与内容不同步，回退到文末
+      const selectionStart = this.textarea ? this.textarea.selectionStart : value.length;
+      const linesBefore = value.substring(0, selectionStart).split('\n');
+
+      return {
+        words,
+        chars: value.length,
+        lines: lines.length,
+        line: linesBefore.length,
+        column: linesBefore[linesBefore.length - 1].length + 1,
+      };
+    }
+
+    /**
+     * Switch the UI language at runtime (re-renders toolbar labels).
+     * @param {string} lang - 'zh' | 'en'
+     */
+    setLang(lang) {
+      this.options.lang = lang;
+      if (this.toolbar && typeof this.toolbar.setLang === 'function') {
+        this.toolbar.setLang(lang);
+      }
+    }
+
+    /**
+     * Execute an action by ID
+     * Central dispatcher used by toolbar clicks, keyboard shortcuts, and programmatic calls
+     * @param {string} actionId - The action identifier (e.g., 'toggleBold', 'insertLink')
+     * @param {Event|null} event - Optional event that triggered the action
+     * @returns {Promise<boolean>} Whether the action was executed successfully
+     */
+    async performAction(actionId, event = null) {
+      const textarea = this.textarea;
+      if (!textarea) return false;
+
+      const action = this.actionsById?.[actionId];
+      if (!action) {
+        console.warn(`OverType: Unknown action "${actionId}"`);
+        return false;
+      }
+
+      textarea.focus();
+
+      try {
+        await action({
+          editor: this,
+          getValue: () => this.getValue(),
+          setValue: (value) => this.setValue(value),
+          event
+        });
+        // Note: actions are responsible for dispatching input event
+        // This preserves behavior for direct consumers of toolbarButtons.*.action
+        return true;
+      } catch (error) {
+        console.error(`OverType: Action "${actionId}" error:`, error);
+        this.wrapper.dispatchEvent(new CustomEvent('button-error', {
+          detail: { actionId, error }
+        }));
+        return false;
+      }
+    }
+
+    /**
+     * Get the rendered HTML of the current content
+     * @param {Object} options - Rendering options
+     * @param {boolean} options.cleanHTML - If true, removes syntax markers and OverType-specific classes
+     * @returns {string} Rendered HTML
+     */
+    getRenderedHTML(options = {}) {
+      const markdown = this.getValue();
+      let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter);
+
+      if (options.cleanHTML) {
+        // Remove all syntax marker spans for clean HTML export
+        html = html.replace(/<span class="syntax-marker[^"]*">.*?<\/span>/g, '');
+        // Remove OverType-specific classes
+        html = html.replace(/\sclass="(bullet-list|ordered-list|code-fence|hr-marker|blockquote|url-part)"/g, '');
+        // Clean up empty class attributes
+        html = html.replace(/\sclass=""/g, '');
+      }
+      
+      return html;
+    }
+
+    /**
+     * Render the current content into an arbitrary element.
+     * Intended for the style-preview pane: HTML is cleaned of syntax markers,
+     * then professional blocks (math / mermaid / graphviz) render in place.
+     * @param {HTMLElement} el - Target element
+     * @param {Object} options - Forwarded to getRenderedHTML and renderProfessional
+     */
+    renderInto(el, options = {}) {
+      if (!el) return;
+      el.innerHTML = this.getRenderedHTML({ cleanHTML: true, ...options });
+      renderProfessional(el, { ...this.options, ...options });
+    }
+
+    /**
+     * Get the current preview element's HTML
+     * This includes all syntax markers and OverType styling
+     * @returns {string} Current preview HTML (as displayed)
+     */
+    getPreviewHTML() {
+      // IR mode: the wrapper-level preview layer is hidden; render from source
+      if (this.container && this.container.dataset.mode === 'ir' && this.ir) {
+        return MarkdownParser.parse(this.getValue(), -1, false, this.options.codeHighlighter, true);
+      }
+      return this.preview.innerHTML;
+    }
+
+    /**
+     * Indent the current line or selected lines by two spaces.
+     */
+    indentSelection() {
+      this._replaceSelectedLines(line => `  ${line}`);
+    }
+
+    /**
+     * Outdent the current line or selected lines by up to two spaces or one tab.
+     */
+    outdentSelection() {
+      this._replaceSelectedLines(line => line.replace(/^( {1,2}|\t)/, ''));
+    }
+
+    /**
+     * Replace full lines touched by the current selection.
+     * @private
+     */
+    _replaceSelectedLines(transformLine) {
+      if (!this._canEditTextarea()) return false;
+
+      const textarea = this.textarea;
+      const { selectionStart, selectionEnd, value } = textarea;
+      const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+      const effectiveEnd = this._effectiveSelectionEnd(value, selectionStart, selectionEnd);
+      const lineEndOffset = value.indexOf('\n', effectiveEnd);
+      const lineEnd = lineEndOffset === -1 ? value.length : lineEndOffset;
+      const selectedLines = value.slice(lineStart, lineEnd);
+      const replacement = selectedLines
+        .split('\n')
+        .map(transformLine)
+        .join('\n');
+
+      if (replacement === selectedLines) return false;
+
+      // Replace via execCommand to preserve native undo history (matches
+      // insertAtCursor); fall back to setRangeText where execCommand is unavailable.
+      textarea.setSelectionRange(lineStart, lineEnd);
+      let inserted = false;
+      try {
+        inserted = document.execCommand('insertText', false, replacement);
+      } catch (_) {}
+
+      if (!inserted) {
+        textarea.setRangeText(replacement, lineStart, lineEnd, 'preserve');
+      }
+
+      textarea.setSelectionRange(lineStart, lineStart + replacement.length);
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+      return true;
+    }
+
+    /**
+     * @private
+     */
+    _effectiveSelectionEnd(value, selectionStart, selectionEnd) {
+      if (selectionEnd > selectionStart && value[selectionEnd - 1] === '\n') {
+        return selectionEnd - 1;
+      }
+
+      return selectionEnd;
+    }
+
+    /**
+     * @private
+     */
+    _canEditTextarea() {
+      return this.textarea && !this.textarea.disabled && !this.textarea.readOnly;
+    }
+    
+    /**
+     * Get clean HTML without any OverType-specific markup
+     * Useful for exporting to other formats or storage
+     * @returns {string} Clean HTML suitable for export
+     */
+    getCleanHTML() {
+      return this.getRenderedHTML({ cleanHTML: true });
+    }
+
+    // ===== P2 转换导出 =====
+    /** 导出为独立 HTML 文档字符串 */
+    exportHTML(title) { return exportHTML(this, title); }
+    /** 导出为面向微信等富文本编辑器的内联样式 HTML */
+    exportWeChat() { return exportWeChat(this); }
+    /** 导出为知乎兼容 HTML */
+    exportZhihu() { return exportZhihu(this); }
+    /** 通过浏览器打印对话框导出 PDF */
+    exportPDF(title) { return exportPDF(this, title); }
+
+    /**
+     * Focus the editor
+     */
+    focus() {
+      this.textarea.focus();
+    }
+
+    /**
+     * Blur the editor
+     */
+    blur() {
+      this.textarea.blur();
+    }
+
+    /**
+     * Check if editor is initialized
+     * @returns {boolean}
+     */
+    isInitialized() {
+      return this.initialized;
+    }
+
+    /**
+     * Re-initialize with new options
+     * @param {Object} options - New options to apply
+     */
+    reinit(options = {}) {
+      const prevToolbarButtons = this.options?.toolbarButtons;
+      this.options = this._mergeOptions({ ...this.options, ...options });
+      const toolbarNeedsRebuild = this.toolbar &&
+        this.options.toolbar &&
+        toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons);
+
+      // Rebuild action map in case toolbarButtons changed
+      this._rebuildActionsMap();
+
+      if (toolbarNeedsRebuild) {
+        this._cleanupToolbarListeners();
+        this.toolbar.destroy();
+        this.toolbar = null;
+        this._createToolbar();
+      }
+
+      if (this.fileUploadInitialized) {
+        this._destroyFileUpload();
+      }
+      if (this.options.fileUpload) {
+        this._initFileUpload();
+      }
+
+      this._applyOptions();
+      this.updatePreview();
+    }
+
+    showToolbar() {
+      if (this.toolbar) {
+        this.toolbar.show();
+      } else {
+        this._createToolbar();
+      }
+    }
+
+    hideToolbar() {
+      if (this.toolbar) {
+        this.toolbar.hide();
+      }
+    }
+
+    /**
+     * Set theme for this instance
+     * @param {string|Object} theme - Theme name or custom theme object
+     * @returns {this} Returns this for chaining
+     */
+    setTheme(theme) {
+      OverType._autoInstances.delete(this);
+      this.instanceTheme = theme;
+
+      if (theme === 'auto') {
+        OverType._autoInstances.add(this);
+        OverType._startAutoListener();
+        this._applyResolvedTheme(resolveAutoTheme('auto'));
+      } else {
+        const themeObj = typeof theme === 'string' ? getTheme(theme) : theme;
+        const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
+
+        if (themeName) {
+          this.container.setAttribute('data-theme', themeName);
+        }
+
+        if (themeObj && themeObj.colors) {
+          const cssVars = themeToCSSVars(themeObj.colors, themeObj.previewColors);
+          this.container.style.cssText += cssVars;
+        }
+
+        this.updatePreview();
+      }
+
+      OverType._stopAutoListener();
+      return this;
+    }
+
+    _applyResolvedTheme(themeName) {
+      const themeObj = getTheme(themeName);
+      this.container.setAttribute('data-theme', themeName);
+
+      if (themeObj && themeObj.colors) {
+        this.container.style.cssText = themeToCSSVars(themeObj.colors, themeObj.previewColors);
+      }
+
+      this.updatePreview();
+    }
+
+    /**
+     * Set instance-specific code highlighter
+     * @param {Function|null} highlighter - Function that takes (code, language) and returns highlighted HTML
+     */
+    setCodeHighlighter(highlighter) {
+      this.options.codeHighlighter = highlighter;
+      this.updatePreview();
+    }
+
+    /**
+     * Update stats bar
+     * @private
+     */
+    _updateStats() {
+      if (!this.statsBar) return;
+
+      const isIR = this.container && this.container.dataset.mode === 'ir' && this.ir;
+      const value = this.getValue();
+      const lines = value.split('\n');
+      const chars = value.length;
+      const words = value.split(/\s+/).filter(w => w.length > 0).length;
+
+      // Calculate line and column (IR: textarea offset is block-scoped)
+      let selectionStart;
+      if (isIR) {
+        const b = this.ir.blocks[this.ir.activeIndex];
+        selectionStart = (b ? b.start : 0) + this.textarea.selectionStart;
+      } else {
+        selectionStart = this.textarea.selectionStart;
+      }
+      const beforeCursor = value.substring(0, selectionStart);
+      const linesBeforeCursor = beforeCursor.split('\n');
+      const currentLine = linesBeforeCursor.length;
+      const currentColumn = linesBeforeCursor[linesBeforeCursor.length - 1].length + 1;
+      
+      // Use custom formatter if provided
+      if (this.options.statsFormatter) {
+        this.statsBar.innerHTML = this.options.statsFormatter({
+          chars,
+          words,
+          lines: lines.length,
+          line: currentLine,
+          column: currentColumn
+        });
+      } else {
+        // Default format with live dot
+        this.statsBar.innerHTML = `
+          <div class="overtype-stat">
+            <span class="live-dot"></span>
+            <span>${chars} 字 · ${words} 词 · ${lines.length} 行</span>
+          </div>
+          <div class="overtype-stat">第 ${currentLine} 行，第 ${currentColumn} 列</div>
+        `;
+      }
+    }
+    
+    /**
+     * Setup auto-resize functionality
+     * @private
+     */
+    _setupAutoResize() {
+      // Add auto-resize class for styling
+      this.container.classList.add('overtype-auto-resize');
+      
+      // Store previous height for comparison
+      this.previousHeight = null;
+      
+      // Initial height update
+      this._updateAutoHeight();
+      
+      // Listen for input events
+      this.textarea.addEventListener('input', () => this._updateAutoHeight());
+      
+      // Listen for window resize
+      window.addEventListener('resize', () => this._updateAutoHeight());
+    }
+    
+    /**
+     * Update height based on scrollHeight
+     * @private
+     */
+    _updateAutoHeight() {
+      if (!this.options.autoResize) return;
+
+      const textarea = this.textarea;
+      const preview = this.preview;
+      const wrapper = this.wrapper;
+      const isPreviewMode = this.container.dataset.mode === 'preview';
+      const isIRMode = this.container.dataset.mode === 'ir';
+
+      if (isIRMode) {
+        // IR mode: content flows naturally inside the block container
+        wrapper.style.removeProperty('height');
+        preview.style.removeProperty('height');
+        preview.style.removeProperty('overflow-y');
+        textarea.style.removeProperty('height');
+        textarea.style.removeProperty('overflow-y');
+        return;
+      }
+
+      if (isPreviewMode) {
+        // In preview mode, CSS makes the preview position:static so it flows naturally.
+        // Just clear any inline heights left over from edit mode.
+        wrapper.style.removeProperty('height');
+        preview.style.removeProperty('height');
+        preview.style.removeProperty('overflow-y');
+        textarea.style.removeProperty('height');
+        textarea.style.removeProperty('overflow-y');
+        return;
+      }
+
+      // Store scroll positions
+      const scrollTop = textarea.scrollTop;
+
+      // Reset heights to get accurate scrollHeight
+      // Wrapper must also reset so the absolute-positioned textarea isn't constrained
+      wrapper.style.setProperty('height', 'auto', 'important');
+      textarea.style.setProperty('height', 'auto', 'important');
+
+      let newHeight = textarea.scrollHeight;
+
+      // Apply min height constraint
+      if (this.options.minHeight) {
+        const minHeight = parseInt(this.options.minHeight);
+        newHeight = Math.max(newHeight, minHeight);
+      }
+
+      // Apply max height constraint
+      let overflow = 'hidden';
+      if (this.options.maxHeight) {
+        const maxHeight = parseInt(this.options.maxHeight);
+        if (newHeight > maxHeight) {
+          newHeight = maxHeight;
+          overflow = 'auto';
+        }
+      }
+
+      // Apply the new height to all elements with !important to override base styles
+      const heightPx = newHeight + 'px';
+      textarea.style.setProperty('height', heightPx, 'important');
+      textarea.style.setProperty('overflow-y', overflow, 'important');
+
+      preview.style.setProperty('height', heightPx, 'important');
+      preview.style.setProperty('overflow-y', overflow, 'important');
+
+      wrapper.style.setProperty('height', heightPx, 'important');
+
+      // Restore scroll position
+      textarea.scrollTop = scrollTop;
+      preview.scrollTop = scrollTop;
+
+      // Track if height changed
+      if (this.previousHeight !== newHeight) {
+        this.previousHeight = newHeight;
+      }
+    }
+    
+    /**
+     * Show or hide stats bar
+     * @param {boolean} show - Whether to show stats
+     */
+    showStats(show) {
+      this.options.showStats = show;
+
+      if (show && !this.statsBar) {
+        // Create stats bar (add to container, not wrapper)
+        this.statsBar = document.createElement('div');
+        this.statsBar.className = 'overtype-stats';
+        this.container.appendChild(this.statsBar);
+        this._updateStats();
+      } else if (show && this.statsBar) {
+        // Already visible - refresh stats (useful after changing statsFormatter)
+        this._updateStats();
+      } else if (!show && this.statsBar) {
+        // Remove stats bar
+        this.statsBar.remove();
+        this.statsBar = null;
+      }
+    }
+    
+    /**
+     * Show normal edit mode (overlay with markdown preview)
+     * @returns {this} Returns this for chaining
+     */
+    showNormalEditMode() {
+      // Leaving IR mode: restore textarea/preview structure first
+      if (this.container.dataset.mode === 'ir' && this.ir) {
+        this.ir.deactivate();
+      }
+      this.container.dataset.mode = 'normal';
+      this._syncPreviewInteractivity();
+      this.updatePreview(); // Re-render with normal mode (e.g., show syntax markers)
+      this._updateAutoHeight();
+
+      // Always sync scroll from preview to textarea
+      requestAnimationFrame(() => {
+        this.textarea.scrollTop = this.preview.scrollTop;
+        this.textarea.scrollLeft = this.preview.scrollLeft;
+      });
+
+      return this;
+    }
+
+    /**
+     * Show plain textarea mode (no overlay)
+     * @returns {this} Returns this for chaining
+     */
+    showPlainTextarea() {
+      if (this.container.dataset.mode === 'ir' && this.ir) {
+        this.ir.deactivate();
+      }
+      this.container.dataset.mode = 'plain';
+      this._syncPreviewInteractivity();
+      this._updateAutoHeight();
+
+      // Update toolbar button if exists
+      if (this.toolbar) {
+        const toggleBtn = this.container.querySelector('[data-action="toggle-plain"]');
+        if (toggleBtn) {
+          toggleBtn.classList.remove('active');
+          toggleBtn.title = 'Show markdown preview';
+        }
+      }
+
+      return this;
+    }
+
+    /**
+     * Show preview mode (read-only view)
+     * @returns {this} Returns this for chaining
+     */
+    showPreviewMode() {
+      if (this.container.dataset.mode === 'ir' && this.ir) {
+        this.ir.deactivate();
+      }
+      this.container.dataset.mode = 'preview';
+      this._syncPreviewInteractivity();
+      this.updatePreview(); // Re-render with preview mode (e.g., checkboxes)
+      this._updateAutoHeight();
+      return this;
+    }
+
+    /**
+     * Show instant-render mode (block-level WYSIWYG):
+     * the caret block shows raw markdown, all other blocks render live.
+     * @returns {this} Returns this for chaining
+     */
+    showInstantRenderMode() {
+      if (!this.ir) {
+        this.ir = new IRRenderer(this);
+      }
+      if (this.container.dataset.mode !== 'ir') {
+        this.ir.activate();
+      }
+      this.container.dataset.mode = 'ir';
+      this._syncPreviewInteractivity();
+      this._updateAutoHeight();
+      return this;
+    }
+
+    /**
+     * Destroy the editor instance
+     */
+    destroy() {
+      OverType._autoInstances.delete(this);
+      OverType._stopAutoListener();
+
+      if (this.fileUploadInitialized) {
+        this._destroyFileUpload();
+      }
+
+      // P2: detach the paste listener if installed
+      if (this._pasteHTMLUninstall) {
+        this._pasteHTMLUninstall();
+        this._pasteHTMLUninstall = null;
+      }
+
+      // Remove instance reference
+      this.element.overTypeInstance = null;
+      OverType.instances.delete(this.element);
+
+      // Cleanup shortcuts
+      if (this.shortcuts) {
+        this.shortcuts.destroy();
+      }
+
+      // Cancel any pending Safari reflow nudge
+      if (this._safariReflowRaf) {
+        cancelAnimationFrame(this._safariReflowRaf);
+        this._safariReflowRaf = null;
+      }
+
+      // Remove DOM if created by us
+      if (this.wrapper) {
+        if (this.ir) {
+          // Restore textarea/preview structure before tearing down the wrapper
+          this.ir.deactivate();
+        }
+        const content = this.getValue();
+        this.wrapper.remove();
+
+        // Restore original content
+        this.element.textContent = content;
+      }
+
+      this.ir = null;
+      this.initialized = false;
+    }
+
+    // ===== Static Methods =====
+
+    /**
+     * Initialize multiple editors (static convenience method)
+     * @param {string|Element|NodeList|Array} target - Target element(s)
+     * @param {Object} options - Configuration options
+     * @returns {Array} Array of OverType instances
+     */
+    static init(target, options = {}) {
+      return new OverType(target, options);
+    }
+
+    /**
+     * Initialize editors with options from data-ot-* attributes
+     * @param {string} selector - CSS selector for target elements
+     * @param {Object} defaults - Default options (data attrs override these)
+     * @returns {Array<OverType>} Array of OverType instances
+     * @example
+     * // HTML: <div class="editor" data-ot-toolbar="true" data-ot-theme="cave"></div>
+     * OverType.initFromData('.editor', { fontSize: '14px' });
+     */
+    static initFromData(target, defaults = {}) {
+      const elements = OverType._resolveTargets(target);
+      return elements.map(el => {
+        const options = { ...defaults };
+
+        // Parse data-ot-* attributes (kebab-case to camelCase)
+        for (const attr of el.attributes) {
+          if (!attr.name.startsWith('data-ot-')) continue;
+          const kebab = attr.name.slice(8); // Remove 'data-ot-'
+
+          // data-ot-textarea-<attr> maps onto textareaProps (e.g. data-ot-textarea-required).
+          // data-ot-textarea-props is the whole-object JSON form, handled generically below.
+          if (kebab.startsWith('textarea-') && kebab !== 'textarea-props') {
+            const propKey = kebab.slice(9).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+            options.textareaProps = { ...(options.textareaProps || {}), [propKey]: OverType._parseDataValue(attr.value) };
+            continue;
+          }
+
+          const key = kebab.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+          options[key] = OverType._parseDataValue(attr.value);
+        }
+
+        return new OverType(el, options)[0];
+      });
+    }
+
+    /**
+     * Normalize various target shapes to an array of Elements
+     * @private
+     * @param {string|Element|NodeList|Element[]} target
+     * @returns {Element[]}
+     */
+    static _resolveTargets(target) {
+      if (target == null) {
+        throw new Error('Invalid target: must be selector string, Element, NodeList, or Array');
+      }
+      if (typeof target === 'string') {
+        return Array.from(document.querySelectorAll(target));
+      }
+      if (target instanceof Element) {
+        return [target];
+      }
+      if (target instanceof NodeList) {
+        return Array.from(target);
+      }
+      if (Array.isArray(target)) {
+        return target;
+      }
+      // Array-like (e.g. jQuery objects expose numeric indices and length)
+      if (typeof target.length === 'number') {
+        return Array.from(target);
+      }
+      throw new Error('Invalid target: must be selector string, Element, NodeList, or Array');
+    }
+
+    /**
+     * Parse a data attribute value to the appropriate type
+     * @private
+     */
+    static _parseDataValue(value) {
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+      if (value === 'null') return null;
+      if (value !== '' && !isNaN(Number(value))) return Number(value);
+      const trimmed = value.trim();
+      if (trimmed[0] === '{' || trimmed[0] === '[') {
+        try {
+          return JSON.parse(trimmed);
+        } catch (e) {
+          return value;
+        }
+      }
+      return value;
+    }
+
+    /**
+     * Get instance from a target. Accepts the same shapes as the constructor;
+     * for multi-element targets, returns the instance for the first matching
+     * element, or null if none.
+     * @param {string|Element|NodeList|Element[]} target
+     * @returns {OverType|null}
+     */
+    static getInstance(target) {
+      let element;
+      if (target instanceof Element) {
+        element = target;
+      } else {
+        const elements = OverType._resolveTargets(target);
+        element = elements[0];
+      }
+      if (!element) return null;
+      return element.overTypeInstance || OverType.instances.get(element) || null;
+    }
+
+    /**
+     * Destroy all instances
+     */
+    static destroyAll() {
+      const elements = document.querySelectorAll('[data-overtype-instance]');
+      elements.forEach(element => {
+        const instance = OverType.getInstance(element);
+        if (instance) {
+          instance.destroy();
+        }
+      });
+    }
+
+    /**
+     * Inject styles into the document
+     * @param {boolean} force - Force re-injection
+     */
+    static injectStyles(force = false) {
+      if (OverType.stylesInjected && !force) return;
+
+      // Remove any existing OverType styles
+      const existing = document.querySelector('style.overtype-styles');
+      if (existing) {
+        existing.remove();
+      }
+
+      // Generate and inject new styles with current theme
+      const theme = OverType.currentTheme || solar;
+      const styles = generateStyles({ theme });
+      const styleEl = document.createElement('style');
+      styleEl.className = 'overtype-styles';
+      styleEl.textContent = styles;
+      document.head.appendChild(styleEl);
+
+      OverType.stylesInjected = true;
+    }
+    
+    /**
+     * Set global theme for all OverType instances
+     * @param {string|Object} theme - Theme name or custom theme object
+     * @param {Object} customColors - Optional color overrides
+     */
+    static setTheme(theme, customColors = null) {
+      OverType._globalAutoTheme = false;
+      OverType._globalAutoCustomColors = null;
+
+      if (theme === 'auto') {
+        OverType._globalAutoTheme = true;
+        OverType._globalAutoCustomColors = customColors;
+        OverType._startAutoListener();
+        OverType._applyGlobalTheme(resolveAutoTheme('auto'), customColors);
+        return;
+      }
+
+      OverType._stopAutoListener();
+      OverType._applyGlobalTheme(theme, customColors);
+    }
+
+    static _applyGlobalTheme(theme, customColors = null) {
+      let themeObj = typeof theme === 'string' ? getTheme(theme) : theme;
+
+      if (customColors) {
+        themeObj = mergeTheme(themeObj, customColors);
+      }
+
+      OverType.currentTheme = themeObj;
+      OverType.injectStyles(true);
+
+      const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
+
+      document.querySelectorAll('.overtype-container').forEach(container => {
+        if (themeName) {
+          container.setAttribute('data-theme', themeName);
+        }
+      });
+
+      document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
+        if (!wrapper.closest('.overtype-container')) {
+          if (themeName) {
+            wrapper.setAttribute('data-theme', themeName);
+          }
+        }
+
+        const instance = wrapper._instance;
+        if (instance) {
+          instance.updatePreview();
+        }
+      });
+
+      document.querySelectorAll('overtype-editor').forEach(webComponent => {
+        if (themeName && typeof webComponent.setAttribute === 'function') {
+          webComponent.setAttribute('theme', themeName);
+        }
+        if (typeof webComponent.refreshTheme === 'function') {
+          webComponent.refreshTheme();
+        }
+      });
+    }
+
+    static _startAutoListener() {
+      if (OverType._autoMediaQuery) return;
+      if (!window.matchMedia) return;
+
+      OverType._autoMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      OverType._autoMediaListener = (e) => {
+        const resolved = e.matches ? 'cave' : 'solar';
+
+        if (OverType._globalAutoTheme) {
+          OverType._applyGlobalTheme(resolved, OverType._globalAutoCustomColors);
+        }
+
+        OverType._autoInstances.forEach(inst => inst._applyResolvedTheme(resolved));
+      };
+
+      OverType._autoMediaQuery.addEventListener('change', OverType._autoMediaListener);
+    }
+
+    static _stopAutoListener() {
+      if (OverType._autoInstances.size > 0 || OverType._globalAutoTheme) return;
+      if (!OverType._autoMediaQuery) return;
+
+      OverType._autoMediaQuery.removeEventListener('change', OverType._autoMediaListener);
+      OverType._autoMediaQuery = null;
+      OverType._autoMediaListener = null;
+    }
+
+    /**
+     * Set global code highlighter for all OverType instances
+     * @param {Function|null} highlighter - Function that takes (code, language) and returns highlighted HTML
+     */
+    static setCodeHighlighter(highlighter) {
+      MarkdownParser.setCodeHighlighter(highlighter);
+
+      // Update all existing instances in light DOM
+      document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
+        const instance = wrapper._instance;
+        if (instance && instance.updatePreview) {
+          instance.updatePreview();
+        }
+      });
+
+      // Update web components (shadow DOM instances)
+      document.querySelectorAll('overtype-editor').forEach(webComponent => {
+        if (typeof webComponent.getEditor === 'function') {
+          const instance = webComponent.getEditor();
+          if (instance && instance.updatePreview) {
+            instance.updatePreview();
+          }
+        }
+      });
+    }
+
+    /**
+     * Set custom syntax processor for extending markdown parsing
+     * @param {Function|null} processor - Function that takes (html) and returns modified HTML
+     * @example
+     * OverType.setCustomSyntax((html) => {
+     *   // Highlight footnote references [^1]
+     *   return html.replace(/\[\^(\w+)\]/g, '<span class="footnote-ref">$&</span>');
+     * });
+     */
+    static setCustomSyntax(processor) {
+      MarkdownParser.setCustomSyntax(processor);
+
+      // Update all existing instances
+      document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
+        const instance = wrapper._instance;
+        if (instance && instance.updatePreview) {
+          instance.updatePreview();
+        }
+      });
+
+      document.querySelectorAll('overtype-editor').forEach(webComponent => {
+        if (typeof webComponent.getEditor === 'function') {
+          const instance = webComponent.getEditor();
+          if (instance && instance.updatePreview) {
+            instance.updatePreview();
+          }
+        }
+      });
+    }
+
+    /**
+     * Initialize global event listeners
+     */
+    static initGlobalListeners() {
+      const globalScope = typeof window !== 'undefined' ? window : globalThis;
+      const globalListenersKey = '__overtypeGlobalListenersInitialized';
+
+      if (OverType.globalListenersInitialized || globalScope[globalListenersKey]) {
+        OverType.globalListenersInitialized = true;
+        return;
+      }
+
+      globalScope[globalListenersKey] = true;
+
+      // Input event
+      document.addEventListener('input', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('overtype-input')) {
+          const wrapper = e.target.closest('.overtype-wrapper');
+          const instance = wrapper?._instance;
+          if (instance) instance.handleInput(e);
+        }
+      });
+
+      // Keydown event
+      document.addEventListener('keydown', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('overtype-input')) {
+          const wrapper = e.target.closest('.overtype-wrapper');
+          const instance = wrapper?._instance;
+          if (instance) instance.handleKeydown(e);
+        }
+      });
+
+      // Focus event (capture: true because focus does not bubble)
+      document.addEventListener('focus', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('overtype-input')) {
+          const wrapper = e.target.closest('.overtype-wrapper');
+          const instance = wrapper?._instance;
+          if (instance) instance.handleFocus(e);
+        }
+      }, true);
+
+      // Blur event (capture: true because blur does not bubble)
+      document.addEventListener('blur', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('overtype-input')) {
+          const wrapper = e.target.closest('.overtype-wrapper');
+          const instance = wrapper?._instance;
+          if (instance) instance.handleBlur(e);
+        }
+      }, true);
+
+      // Scroll event
+      document.addEventListener('scroll', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('overtype-input')) {
+          const wrapper = e.target.closest('.overtype-wrapper');
+          const instance = wrapper?._instance;
+          if (instance) instance.handleScroll(e);
+        }
+      }, true);
+
+      // Selection change event
+      document.addEventListener('selectionchange', (e) => {
+        const activeElement = document.activeElement;
+        if (activeElement && activeElement.classList.contains('overtype-input')) {
+          const wrapper = activeElement.closest('.overtype-wrapper');
+          const instance = wrapper?._instance;
+          if (instance) {
+            // Update stats bar for cursor position
+            if (instance.options.showStats && instance.statsBar) {
+              instance._updateStats();
+            }
+            // Debounce updates
+            clearTimeout(instance._selectionTimeout);
+            instance._selectionTimeout = setTimeout(() => {
+              instance.updatePreview();
+            }, 50);
+          }
+        }
+      });
+
+      OverType.globalListenersInitialized = true;
+    }
+}
+
+// Export classes for advanced usage
+OverType.MarkdownParser = MarkdownParser;
+OverType.ShortcutsManager = ShortcutsManager;
+
+// Export theme utilities
+OverType.themes = { solar, cave: getTheme('cave') };
+OverType.getTheme = getTheme;
+
+// Set default theme
+OverType.currentTheme = solar;
+
+// Export for module systems
+export default OverType;
+export { OverType };
+
+// Export toolbar buttons for custom toolbar configurations
+export { toolbarButtons, defaultToolbarButtons } from './toolbar-buttons.js';
+
+// Re-export markdown-actions. Useful for custom toolbar implementations
+export * as markdownActions from 'markdown-actions';
+
+// Re-export renderProfessional for host apps that render markdown independently
+// (e.g. with marked) but still want KaTeX / Mermaid / Graphviz post-processing.
+export { renderProfessional } from './p1-render.js';

@@ -1,0 +1,27 @@
+{
+  "name": "taiping-blog",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -n edge,studio -c cyan,magenta \"pnpm -F @taiping/edge dev\" \"pnpm -F @taiping/studio dev\"",
+    "build": "pnpm -F @taiping/studio build && pnpm -F @taiping/edge build",
+    "deploy": "pnpm build && pnpm -F @taiping/edge deploy",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "pnpm -r test",
+    "db:migrate:local": "pnpm -F @taiping/edge db:migrate:local"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "concurrently": "^9.1.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

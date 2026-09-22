@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="zh" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太平博客管理后台 - 设计规范文档</title>
+    <style id="theme-vars">
+/* ==========================================================================
+   Taiping Blog Admin Design System
+   Style: Minimal Professional (Linear / Vercel inspired)
+   Brand: Ink Monochrome - #2E2E2E primary
+   ========================================================================== */
+
+/* -- Light Mode -- */
+:root {
+  color-scheme: light;
+
+  /* Brand Primary - Ink scale (neutral, one hue) */
+  --color-primary-50: #FAFAFA;
+  --color-primary-100: #F5F5F5;
+  --color-primary-200: #E8E8E8;
+  --color-primary-300: #D4D4D4;
+  --color-primary-400: #A3A3A3;
+  --color-primary-500: #737373;
+  --color-primary-600: #525252;
+  --color-primary-700: #3D3D3D;
+  --color-primary-800: #2E2E2E;
+  --color-primary-900: #1A1A1A;
+
+  /* Semantic aliases */
+  --background: #FAFAFA;
+  --foreground: #1A1A1A;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A1A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A1A;
+  --primary: #2E2E2E;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F5F5F5;
+  --secondary-foreground: #1A1A1A;
+  --muted: #F5F5F5;
+  --muted-foreground: #8C8C8C;
+  --border: #E8E8E8;
+  --border-subtle: #F0F0F0;
+  --input: #E8E8E8;
+  --ring: #3B82F6;
+
+  /* State colors - semantic status only */
+  --state-success: #16A34A;
+  --state-success-light: #F0FDF4;
+  --state-warning: #D97706;
+  --state-warning-light: #FFFBEB;
+  --state-error: #DC2626;
+  --state-error-light: #FEF2F2;
+  --state-info: #2563EB;
+  --state-info-light: #EFF6FF;
+
+  /* Radius - restrained scale */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI',
+    'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+
+  /* Shadows - static surfaces border-led, floating layers allowed deeper */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03);
+  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  /* Layout tokens */
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 64px;
+  --content-max-width: 1024px;
+  --topbar-height: 52px;
+
+  /* Scrollbar */
+  --scroll-thumb: rgba(26, 26, 26, 0.18);
+  --scroll-thumb-hover: rgba(26, 26, 26, 0.32);
+}
+
+/* -- Dark Mode -- */
+.dark {
+  color-scheme: dark;
+
+  --color-primary-50: #1A1A1A;
+  --color-primary-100: #262626;
+  --color-primary-200: #2A2A2A;
+  --color-primary-300: #404040;
+  --color-primary-400: #525252;
+  --color-primary-500: #737373;
+  --color-primary-600: #A3A3A3;
+  --color-primary-700: #D4D4D4;
+  --color-primary-800: #E5E5E5;
+  --color-primary-900: #F5F5F5;
+
+  --background: #0F0F0F;
+  --foreground: #E5E5E5;
+  --card: #1A1A1A;
+  --card-foreground: #E5E5E5;
+  --popover: #1A1A1A;
+  --popover-foreground: #E5E5E5;
+  --primary: #E5E5E5;
+  --primary-foreground: #0F0F0F;
+  --secondary: #262626;
+  --secondary-foreground: #E5E5E5;
+  --muted: #262626;
+  --muted-foreground: #8C8C8C;
+  --border: #2A2A2A;
+  --border-subtle: #222222;
+  --input: #2A2A2A;
+  --ring: #60A5FA;
+
+  --state-success: #4ADE80;
+  --state-success-light: #052E16;
+  --state-warning: #FBBF24;
+  --state-warning-light: #1C1100;
+  --state-error: #F87171;
+  --state-error-light: #450A0A;
+  --state-info: #60A5FA;
+  --state-info-light: #0A1A3A;
+
+  --scroll-thumb: rgba(229, 229, 229, 0.16);
+  --scroll-thumb-hover: rgba(229, 229, 229, 0.28);
+}
+
+/* ==========================================================================
+   Base styles
+   ========================================================================== */
+
+* {
+  border-color: var(--border);
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+}
+
+/* Scrollbar */
+.studio-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+.studio-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.studio-scroll::-webkit-scrollbar-track { background: transparent; }
+.studio-scroll::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 999px;
+}
+.studio-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+}
+
+/* ==========================================================================
+   Component utility classes
+   ========================================================================== */
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 150ms ease, box-shadow 150ms ease;
+}
+.btn-primary:hover:not(:disabled) { opacity: 0.88; }
+.btn-primary:active:not(:disabled) { transform: translateY(0.5px); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--muted);
+  border-color: var(--color-primary-300);
+}
+.btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--muted-foreground);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--state-error);
+  color: #FFFFFF;
+  border: 1px solid var(--state-error);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+.btn-danger:hover:not(:disabled) { opacity: 0.88; }
+.btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-icon { padding: 6px; width: 30px; height: 30px; }
+
+/* Inputs */
+.input-base {
+  width: 100%;
+  padding: 7px 12px;
+  font-size: 13px;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.input-base::placeholder { color: var(--muted-foreground); }
+.input-base:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+.input-base:hover:not(:focus) { border-color: var(--color-primary-300); }
+
+/* Navigation items */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+  text-decoration: none;
+}
+.nav-item:hover { background: var(--muted); color: var(--foreground); }
+.nav-item.active {
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* Table rows */
+.row-hover { transition: background 150ms ease; }
+.row-hover:hover { background: var(--muted); }
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--foreground);
+}
+.badge-success { color: var(--state-success); border-color: var(--state-success); background: var(--state-success-light); }
+.badge-warning { color: var(--state-warning); border-color: var(--state-warning); background: var(--state-warning-light); }
+.badge-error { color: var(--state-error); border-color: var(--state-error); background: var(--state-error-light); }
+.badge-muted { color: var(--muted-foreground); border-color: var(--border-subtle); background: var(--secondary); }
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* Focus visible */
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --radius-sm: var(--radius-sm);
+    --radius-md: var(--radius-md);
+    --radius-lg: var(--radius-lg);
+  }
+  @layer base {
+    body { background: var(--background); color: var(--foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--background); }
+      .text-background { color: var(--background); }
+      .border-background { border-color: var(--background); }
+      .ring-background { --tw-ring-color: var(--background); }
+      .bg-foreground { background-color: var(--foreground); }
+      .text-foreground { color: var(--foreground); }
+      .border-foreground { border-color: var(--foreground); }
+      .ring-foreground { --tw-ring-color: var(--foreground); }
+      .bg-card { background-color: var(--card); }
+      .text-card { color: var(--card); }
+      .border-card { border-color: var(--card); }
+      .ring-card { --tw-ring-color: var(--card); }
+      .bg-card-foreground { background-color: var(--card-foreground); }
+      .text-card-foreground { color: var(--card-foreground); }
+      .border-card-foreground { border-color: var(--card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--card-foreground); }
+      .bg-popover { background-color: var(--popover); }
+      .text-popover { color: var(--popover); }
+      .border-popover { border-color: var(--popover); }
+      .ring-popover { --tw-ring-color: var(--popover); }
+      .bg-popover-foreground { background-color: var(--popover-foreground); }
+      .text-popover-foreground { color: var(--popover-foreground); }
+      .border-popover-foreground { border-color: var(--popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--popover-foreground); }
+      .bg-primary { background-color: var(--primary); }
+      .text-primary { color: var(--primary); }
+      .border-primary { border-color: var(--primary); }
+      .ring-primary { --tw-ring-color: var(--primary); }
+      .bg-primary-foreground { background-color: var(--primary-foreground); }
+      .text-primary-foreground { color: var(--primary-foreground); }
+      .border-primary-foreground { border-color: var(--primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--primary-foreground); }
+      .bg-secondary { background-color: var(--secondary); }
+      .text-secondary { color: var(--secondary); }
+      .border-secondary { border-color: var(--secondary); }
+      .ring-secondary { --tw-ring-color: var(--secondary); }
+      .bg-secondary-foreground { background-color: var(--secondary-foreground); }
+      .text-secondary-foreground { color: var(--secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--secondary-foreground); }
+      .bg-muted { background-color: var(--muted); }
+      .text-muted { color: var(--muted); }
+      .border-muted { border-color: var(--muted); }
+      .ring-muted { --tw-ring-color: var(--muted); }
+      .bg-muted-foreground { background-color: var(--muted-foreground); }
+      .text-muted-foreground { color: var(--muted-foreground); }
+      .border-muted-foreground { border-color: var(--muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--muted-foreground); }
+      .bg-border { background-color: var(--border); }
+      .text-border { color: var(--border); }
+      .border-border { border-color: var(--border); }
+      .ring-border { --tw-ring-color: var(--border); }
+      .bg-input { background-color: var(--input); }
+      .text-input { color: var(--input); }
+      .border-input { border-color: var(--input); }
+      .ring-input { --tw-ring-color: var(--input); }
+      .bg-ring { background-color: var(--ring); }
+      .text-ring { color: var(--ring); }
+      .border-ring { border-color: var(--ring); }
+      .ring-ring { --tw-ring-color: var(--ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+    <style id="responsive-and-shared">
+/* ==========================================================================
+   Shared utilities (consolidated from page-level styles)
+   ========================================================================== */
+.nav-item-active {
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 500;
+}
+.nav-item-active:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.shadow-floating { box-shadow: var(--shadow-floating); }
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Mobile bottom navigation bar
+   ========================================================================== */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  z-index: 50;
+}
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+.mobile-nav-item.active {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Responsive breakpoints
+   Desktop (>=768px): Sidebar 240px + content
+   Mobile (<768px): No sidebar, bottom nav, full-width content
+   ========================================================================== */
+@media (max-width: 767px) {
+  /* Override inline grid-template-columns */
+  .admin-shell {
+    grid-template-columns: 1fr !important;
+  }
+  /* Hide sidebar */
+  .admin-sidebar {
+    display: none !important;
+  }
+  /* Show bottom nav */
+  .mobile-nav {
+    display: flex !important;
+  }
+  /* Adjust content padding for bottom nav space */
+  .admin-main {
+    padding: 12px 12px 64px !important;
+  }
+  /* Prevent text wrapping in header descriptions on mobile */
+  .admin-desc-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+  }
+  /* Status tabs: horizontal scroll on mobile */
+  .admin-tabs-row {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-tabs-row > * {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+  .admin-tabs-row > .ml-4 {
+    margin-left: 1rem !important;
+  }
+  /* Filter row: allow wrapping but keep button on same line as last input */
+  .admin-filter-row {
+    flex-wrap: wrap !important;
+  }
+  .admin-filter-row > .admin-filter-input {
+    flex: 1 1 120px !important;
+    min-width: 0 !important;
+  }
+  .admin-filter-row > .admin-filter-select {
+    flex: 0 0 auto !important;
+  }
+  .admin-filter-row > .admin-filter-btn {
+    flex: 0 0 auto !important;
+  }
+  /* Stack two-column layouts */
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Comment drawer: full width on mobile */
+  .comment-drawer {
+    width: 100% !important;
+  }
+  /* Max width constraint removed on mobile */
+  .admin-content {
+    max-width: 100% !important;
+  }
+}
+    </style>
+
+    <!-- ===== Document-specific styles (do not modify theme tokens above) ===== -->
+    <style>
+      html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+
+      /* TOC sidebar */
+      .doc-toc {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        width: 200px;
+        flex-shrink: 0;
+        overflow-y: auto;
+        border-right: 1px solid var(--border);
+        background: var(--card);
+        padding: 24px 0 24px 16px;
+      }
+      .doc-toc::-webkit-scrollbar { width: 4px; }
+      .doc-toc::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 999px; }
+      .toc-title {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: var(--muted-foreground);
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        padding-right: 16px;
+      }
+      .toc-group { margin-bottom: 16px; }
+      .toc-link {
+        display: block;
+        padding: 4px 16px 4px 8px;
+        font-size: 13px;
+        color: var(--muted-foreground);
+        text-decoration: none;
+        border-radius: var(--radius-sm);
+        line-height: 1.4;
+        transition: background 120ms ease, color 120ms ease;
+      }
+      .toc-link:hover { color: var(--foreground); background: var(--muted); }
+      .toc-sub {
+        display: block;
+        padding: 3px 16px 3px 24px;
+        font-size: 12px;
+        color: var(--muted-foreground);
+        text-decoration: none;
+        line-height: 1.4;
+        transition: color 120ms ease;
+      }
+      .toc-sub:hover { color: var(--foreground); }
+
+      /* Document content */
+      .doc-content {
+        flex: 1;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 48px 40px 120px;
+      }
+      .doc-header {
+        margin-bottom: 48px;
+        padding-bottom: 32px;
+        border-bottom: 1px solid var(--border);
+      }
+      .doc-section { margin-bottom: 64px; scroll-margin-top: 24px; }
+      .doc-section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--foreground);
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .doc-section-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-radius: var(--radius-sm);
+        flex-shrink: 0;
+      }
+      .doc-subtitle {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--foreground);
+        margin: 32px 0 12px;
+      }
+      .doc-h4 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--foreground);
+        margin: 20px 0 8px;
+      }
+      .doc-p {
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--color-primary-700);
+        margin: 0 0 12px;
+      }
+      .doc-ul {
+        margin: 0 0 16px;
+        padding-left: 20px;
+      }
+      .doc-ul li {
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--color-primary-700);
+        margin-bottom: 4px;
+        list-style: disc;
+      }
+
+      /* Spec code block */
+      .spec-pre {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 16px 18px;
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: var(--color-primary-700);
+        overflow-x: auto;
+        margin: 12px 0 16px;
+      }
+      .spec-pre .kw { color: var(--state-info); }
+      .spec-pre .val { color: var(--state-success); }
+      .spec-pre .dim { color: var(--muted-foreground); }
+
+      /* Color swatch */
+      .swatch {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        font-size: 11px;
+      }
+      .swatch-color { height: 48px; }
+      .swatch-meta {
+        padding: 6px 8px;
+        background: var(--card);
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .swatch-name { font-weight: 600; color: var(--foreground); }
+      .swatch-hex { color: var(--muted-foreground); font-family: var(--font-mono); }
+
+      /* Diagram boxes */
+      .diagram {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 20px;
+        background: var(--card);
+        margin: 16px 0;
+      }
+      .diagram-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted-foreground);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 12px;
+      }
+      .d-box {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+      }
+
+      /* Device mockup */
+      .device-mockup {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: var(--card);
+      }
+      .device-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted-foreground);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+
+      /* Toast demo */
+      .toast-demo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        background: var(--card);
+      }
+      .toast-success { border-color: var(--state-success); background: var(--state-success-light); color: var(--state-success); }
+      .toast-error { border-color: var(--state-error); background: var(--state-error-light); color: var(--state-error); }
+      .toast-info { border-color: var(--state-info); background: var(--state-info-light); color: var(--state-info); }
+
+      /* Skeleton */
+      .skeleton-bar {
+        height: 10px;
+        border-radius: var(--radius-sm);
+        background: linear-gradient(90deg, var(--muted) 25%, var(--border) 37%, var(--muted) 63%);
+        background-size: 400% 100%;
+        animation: skel 1.4s ease infinite;
+      }
+      @keyframes skel {
+        0% { background-position: 100% 50%; }
+        100% { background-position: 0 50%; }
+      }
+
+      /* Mini table */
+      .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      .spec-table th, .spec-table td {
+        text-align: left;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .spec-table th {
+        font-weight: 600;
+        color: var(--muted-foreground);
+        font-size: 12px;
+        background: var(--muted);
+      }
+      .spec-table td { color: var(--color-primary-700); }
+      .spec-table .mono { font-family: var(--font-mono); font-size: 12px; }
+
+      /* Type sample */
+      .type-sample { margin-bottom: 8px; }
+      .type-label {
+        font-size: 11px;
+        color: var(--muted-foreground);
+        font-family: var(--font-mono);
+        margin-bottom: 2px;
+      }
+
+      /* Icon demo box */
+      .icon-demo {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--card);
+      }
+      .icon-demo span { font-size: 10px; color: var(--muted-foreground); }
+
+      /* Relationship diagram arrows */
+      .rel-node {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 500;
+        background: var(--card);
+        color: var(--foreground);
+        text-align: center;
+        white-space: nowrap;
+      }
+      .rel-node.active { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+      .rel-arrow {
+        color: var(--muted-foreground);
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+      }
+
+      /* Badge inline in text */
+      .inline-code {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        background: var(--muted);
+        color: var(--foreground);
+        padding: 1px 6px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-subtle);
+      }
+    </style>
+
+</head>
+<body class="min-h-screen font-sans antialiased">
+
+<div class="flex admin-shell">
+
+  <!-- ===== Table of Contents (left sticky sidebar) ===== -->
+  <aside class="admin-sidebar doc-toc studio-scroll no-scrollbar">
+    <div class="toc-title">目录</div>
+    <nav>
+      <div class="toc-group">
+        <a href="#sec-1" class="toc-link">1. 整体布局规划</a>
+        <a href="#sec-1-1" class="toc-sub">1.1 布局框架</a>
+        <a href="#sec-1-2" class="toc-sub">1.2 侧边栏结构</a>
+        <a href="#sec-1-3" class="toc-sub">1.3 内容区域</a>
+        <a href="#sec-1-4" class="toc-sub">1.4 导航分组</a>
+        <a href="#sec-1-5" class="toc-sub">1.5 信息层级</a>
+        <a href="#sec-1-6" class="toc-sub">1.6 响应式适配</a>
+        <a href="#sec-1-7" class="toc-sub">1.7 布局示意图</a>
+        <a href="#sec-1-8" class="toc-sub">1.8 尺寸规范</a>
+      </div>
+      <div class="toc-group">
+        <a href="#sec-2" class="toc-link">2. 视觉样式规范</a>
+        <a href="#sec-2-1" class="toc-sub">2.1 色彩系统</a>
+        <a href="#sec-2-2" class="toc-sub">2.2 排版规范</a>
+        <a href="#sec-2-3" class="toc-sub">2.3 组件样式</a>
+        <a href="#sec-2-4" class="toc-sub">2.4 图标系统</a>
+        <a href="#sec-2-5" class="toc-sub">2.5 交互反馈</a>
+      </div>
+      <div class="toc-group">
+        <a href="#sec-3" class="toc-link">3. 功能模块划分</a>
+        <a href="#sec-3-1" class="toc-sub">3.1 文章管理</a>
+        <a href="#sec-3-2" class="toc-sub">3.2 分类管理</a>
+        <a href="#sec-3-3" class="toc-sub">3.3 标签管理</a>
+        <a href="#sec-3-4" class="toc-sub">3.4 评论管理</a>
+        <a href="#sec-3-5" class="toc-sub">3.5 用户管理</a>
+        <a href="#sec-3-6" class="toc-sub">3.6 模块关系图</a>
+      </div>
+      <div class="toc-group">
+        <a href="#sec-4" class="toc-link">4. 响应式设计</a>
+        <a href="#sec-4-1" class="toc-sub">4.1 桌面端</a>
+        <a href="#sec-4-2" class="toc-sub">4.2 平板端</a>
+        <a href="#sec-4-3" class="toc-sub">4.3 移动端</a>
+        <a href="#sec-4-4" class="toc-sub">4.4 设备预览</a>
+      </div>
+      <div class="toc-group">
+        <a href="#sec-5" class="toc-link">5. 交互体验优化</a>
+        <a href="#sec-5-1" class="toc-sub">5.1 表单交互</a>
+        <a href="#sec-5-2" class="toc-sub">5.2 数据展示</a>
+        <a href="#sec-5-3" class="toc-sub">5.3 搜索与筛选</a>
+        <a href="#sec-5-4" class="toc-sub">5.4 批量操作</a>
+        <a href="#sec-5-5" class="toc-sub">5.5 加载状态</a>
+        <a href="#sec-5-6" class="toc-sub">5.6 错误处理</a>
+        <a href="#sec-5-7" class="toc-sub">5.7 通知提示</a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ===== Main document content ===== -->
+  <main class="admin-main admin-content doc-content studio-scroll">
+
+    <!-- Document header -->
+    <header class="doc-header">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="badge badge-muted">设计规范</span>
+        <span class="badge badge-muted">v1.0</span>
+      </div>
+      <h1 class="text-2xl font-semibold text-foreground mb-2">太平博客管理后台</h1>
+      <p class="doc-p" style="font-size:15px;">设计规范文档 — 涵盖整体布局、视觉样式、功能模块、响应式设计与交互体验的完整规范说明。</p>
+      <div class="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
+        <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> 2026-09-21</span>
+        <span class="flex items-center gap-1"><i data-lucide="palette" class="w-3.5 h-3.5"></i> Ink Monochrome</span>
+        <span class="flex items-center gap-1"><i data-lucide="layers" class="w-3.5 h-3.5"></i> 5 章节</span>
+      </div>
+    </header>
+
+    <!-- ================================================================ -->
+    <!-- Section 1: 整体布局规划 -->
+    <!-- ================================================================ -->
+    <section class="doc-section" id="sec-1">
+      <h2 class="doc-section-title"><span class="doc-section-num">1</span>整体布局规划</h2>
+
+      <h3 class="doc-subtitle" id="sec-1-1">1.1 布局框架</h3>
+      <p class="doc-p">后台采用经典的双栏 Grid 布局：左侧固定宽度侧边栏（240px）+ 右侧弹性内容区（1fr），整体高度撑满视口（h-screen），形成沉浸式管理界面。</p>
+      <pre class="spec-pre"><span class="dim">/* Layout grid */</span>
+<span class="kw">grid-template-columns</span>: <span class="val">240px 1fr</span>;
+<span class="kw">grid-template-rows</span>:    <span class="val">100vh</span>;
+<span class="kw">sidebar</span>  <span class="dim">→</span> 固定 <span class="val">240px</span>，不可缩放
+<span class="kw">content</span>  <span class="dim">→</span> 弹性 <span class="val">1fr</span>，overflow-y: auto</pre>
+
+      <h3 class="doc-subtitle" id="sec-1-2">1.2 侧边栏结构</h3>
+      <p class="doc-p">侧边栏自上而下分为三个区域，各区域职责清晰、互不干扰：</p>
+      <ul class="doc-ul">
+        <li><strong>顶部（Logo + 搜索）</strong>：品牌标识与全局搜索入口，高度 52px，与顶栏对齐</li>
+        <li><strong>中部（导航分组）</strong>：可滚动区域，按模块分组排列导航项，支持折叠/展开</li>
+        <li><strong>底部（用户信息）</strong>：头像、昵称、角色，点击展开下拉菜单（个人设置/退出登录）</li>
+      </ul>
+
+      <h3 class="doc-subtitle" id="sec-1-3">1.3 内容区域</h3>
+      <p class="doc-p">内容区为右侧弹性栏，内部最大宽度限制为 1024px，水平居中。内边距 24px（p-6），纵向可滚动。每个页面顶部为页面标题 + 操作按钮区，下方为功能内容。</p>
+      <pre class="spec-pre"><span class="kw">content-max-width</span>: <span class="val">1024px</span>
+<span class="kw">padding</span>:           <span class="val">24px</span>
+<span class="kw">overflow-y</span>:         <span class="val">auto</span>
+<span class="kw">page header</span> <span class="dim">→</span> 标题 + 面包屑 + 主操作按钮</pre>
+
+      <h3 class="doc-subtitle" id="sec-1-4">1.4 导航分组</h3>
+      <p class="doc-p">侧边栏导航按业务域分为三大分组，每组下设具体页面：</p>
+      <table class="spec-table">
+        <thead><tr><th style="width:120px;">分组</th><th>包含页面</th></tr></thead>
+        <tbody>
+          <tr><td><strong>内容</strong></td><td>概览、文章、页面、说说、评论</td></tr>
+          <tr><td><strong>界面</strong></td><td>分类标签、主题</td></tr>
+          <tr><td><strong>系统</strong></td><td>媒体、设置</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="doc-subtitle" id="sec-1-5">1.5 信息层级</h3>
+      <p class="doc-p">信息架构采用三级层级模型，确保用户在任意位置都能感知当前所处的层级位置：</p>
+      <pre class="spec-pre"><span class="kw">Level 1</span> <span class="dim">(模块)</span>   <span class="dim">→</span> 内容 / 界面 / 系统
+<span class="kw">Level 2</span> <span class="dim">(页面)</span>   <span class="dim">→</span> 文章列表 / 编辑器 / 分类管理 ...
+<span class="kw">Level 3</span> <span class="dim">(操作)</span>   <span class="dim">→</span> 新建 / 编辑 / 删除 / 发布 / 批量操作</pre>
+
+      <h3 class="doc-subtitle" id="sec-1-6">1.6 响应式适配</h3>
+      <p class="doc-p">侧边栏在不同屏幕尺寸下采用不同的展现策略：</p>
+      <ul class="doc-ul">
+        <li><strong>平板（768px - 1199px）</strong>：侧边栏收缩为 64px 图标模式，仅显示图标，hover 显示 tooltip</li>
+        <li><strong>移动端（&lt;768px）</strong>：侧边栏转为抽屉模式，默认隐藏，点击汉堡按钮滑入</li>
+      </ul>
+
+      <h3 class="doc-subtitle" id="sec-1-7">1.7 布局示意图</h3>
+      <p class="doc-p">以下为桌面端整体布局的可视化示意图，各色块代表对应的功能区域：</p>
+      <div class="diagram">
+        <div class="diagram-label">桌面端布局结构</div>
+        <div class="flex gap-3" style="height:280px;">
+          <!-- Sidebar -->
+          <div class="flex flex-col gap-2" style="width:30%;">
+            <div class="d-box" style="background:var(--primary);color:var(--primary-foreground);height:48px;">Logo + 搜索</div>
+            <div class="d-box flex-1" style="background:var(--muted);flex-direction:column;gap:6px;padding:10px;">
+              <span style="font-size:10px;color:var(--muted-foreground);">导航分组</span>
+              <div class="d-box" style="width:80%;height:22px;background:var(--card);">内容</div>
+              <div class="d-box" style="width:80%;height:22px;background:var(--card);">界面</div>
+              <div class="d-box" style="width:80%;height:22px;background:var(--card);">系统</div>
+            </div>
+            <div class="d-box" style="background:var(--secondary);height:44px;">用户信息</div>
+          </div>
+          <!-- Content -->
+          <div class="flex flex-col gap-2 flex-1">
+            <div class="d-box" style="background:var(--card);height:48px;justify-content:space-between;padding:0 14px;">
+              <span>页面标题 + 面包屑</span><span>操作按钮</span>
+            </div>
+            <div class="d-box flex-1" style="background:var(--background);flex-direction:column;padding:14px;align-items:stretch;">
+              <span style="font-size:10px;color:var(--muted-foreground);text-align:left;margin-bottom:8px;">内容区 (max-width: 1024px)</span>
+              <div class="d-box" style="height:60px;background:var(--card);margin-bottom:6px;">数据统计卡片</div>
+              <div class="d-box flex-1" style="background:var(--card);">数据表格 / 列表</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-1-8">1.8 尺寸规范</h3>
+      <p class="doc-p">所有布局尺寸均使用 CSS 变量定义，确保全局一致性。以下是各关键尺寸的精确值：</p>
+      <table class="spec-table">
+        <thead><tr><th>变量名</th><th>值</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">--sidebar-width</td><td class="mono">240px</td><td>侧边栏宽度（桌面端）</td></tr>
+          <tr><td class="mono">--sidebar-collapsed</td><td class="mono">64px</td><td>侧边栏收缩宽度（平板端）</td></tr>
+          <tr><td class="mono">--topbar-height</td><td class="mono">52px</td><td>顶栏/Logo 区高度</td></tr>
+          <tr><td class="mono">--content-max-width</td><td class="mono">1024px</td><td>内容区最大宽度</td></tr>
+          <tr><td class="mono">content padding</td><td class="mono">24px</td><td>内容区内边距 (p-6)</td></tr>
+          <tr><td class="mono">--radius-sm / md / lg</td><td class="mono">4px / 6px / 8px</td><td>圆角递进尺度</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- Section 2: 视觉样式规范 -->
+    <!-- ================================================================ -->
+    <section class="doc-section" id="sec-2">
+      <h2 class="doc-section-title"><span class="doc-section-num">2</span>视觉样式规范</h2>
+
+      <h3 class="doc-subtitle" id="sec-2-1">2.1 色彩系统</h3>
+      <p class="doc-p">色彩体系以「墨色单色」（Ink Monochrome）为核心，主色为 <span class="inline-code">#2E2E2E</span>。状态色仅用于语义反馈，不参与装饰性配色。整套色板支持浅色/深色双模式。</p>
+
+      <h4 class="doc-h4">品牌主色 — Ink 色阶（50 - 900）</h4>
+      <div class="grid grid-cols-5 gap-2 mb-6">
+        <div class="swatch"><div class="swatch-color" style="background:#FAFAFA;border-bottom:1px solid var(--border);"></div><div class="swatch-meta"><span class="swatch-name">50</span><span class="swatch-hex">#FAFAFA</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#F5F5F5;border-bottom:1px solid var(--border);"></div><div class="swatch-meta"><span class="swatch-name">100</span><span class="swatch-hex">#F5F5F5</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#E8E8E8;"></div><div class="swatch-meta"><span class="swatch-name">200</span><span class="swatch-hex">#E8E8E8</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#D4D4D4;"></div><div class="swatch-meta"><span class="swatch-name">300</span><span class="swatch-hex">#D4D4D4</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#A3A3A3;"></div><div class="swatch-meta"><span class="swatch-name">400</span><span class="swatch-hex">#A3A3A3</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#737373;"></div><div class="swatch-meta"><span class="swatch-name">500</span><span class="swatch-hex">#737373</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#525252;"></div><div class="swatch-meta"><span class="swatch-name">600</span><span class="swatch-hex">#525252</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#3D3D3D;"></div><div class="swatch-meta"><span class="swatch-name">700</span><span class="swatch-hex">#3D3D3D</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#2E2E2E;"></div><div class="swatch-meta"><span class="swatch-name">800 主色</span><span class="swatch-hex">#2E2E2E</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#1A1A1A;"></div><div class="swatch-meta"><span class="swatch-name">900</span><span class="swatch-hex">#1A1A1A</span></div></div>
+      </div>
+
+      <h4 class="doc-h4">语义色 — 背景与表面</h4>
+      <div class="grid grid-cols-3 gap-2 mb-6">
+        <div class="swatch"><div class="swatch-color" style="background:#FAFAFA;border-bottom:1px solid var(--border);"></div><div class="swatch-meta"><span class="swatch-name">background</span><span class="swatch-hex">#FAFAFA</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#1A1A1A;"></div><div class="swatch-meta"><span class="swatch-name">foreground</span><span class="swatch-hex">#1A1A1A</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#FFFFFF;border-bottom:1px solid var(--border);"></div><div class="swatch-meta"><span class="swatch-name">card</span><span class="swatch-hex">#FFFFFF</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#E8E8E8;"></div><div class="swatch-meta"><span class="swatch-name">border</span><span class="swatch-hex">#E8E8E8</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#F5F5F5;border-bottom:1px solid var(--border);"></div><div class="swatch-meta"><span class="swatch-name">muted</span><span class="swatch-hex">#F5F5F5</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#8C8C8C;"></div><div class="swatch-meta"><span class="swatch-name">muted-fg</span><span class="swatch-hex">#8C8C8C</span></div></div>
+      </div>
+
+      <h4 class="doc-h4">状态色 — 语义反馈</h4>
+      <div class="grid grid-cols-4 gap-2 mb-6">
+        <div class="swatch"><div class="swatch-color" style="background:#16A34A;"></div><div class="swatch-meta"><span class="swatch-name">success</span><span class="swatch-hex">#16A34A</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#D97706;"></div><div class="swatch-meta"><span class="swatch-name">warning</span><span class="swatch-hex">#D97706</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#DC2626;"></div><div class="swatch-meta"><span class="swatch-name">error</span><span class="swatch-hex">#DC2626</span></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#2563EB;"></div><div class="swatch-meta"><span class="swatch-name">info</span><span class="swatch-hex">#2563EB</span></div></div>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-2-2">2.2 排版规范</h3>
+      <p class="doc-p">字体栈优先使用系统字体与 Inter，中文回退至 PingFang SC / Microsoft YaHei。基础字号 14px，采用紧凑克制的尺度体系。</p>
+      <pre class="spec-pre"><span class="kw">--font-sans</span>: <span class="val">'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif</span>
+<span class="kw">--font-mono</span>: <span class="val">'SF Mono', 'Cascadia Code', Consolas, monospace</span></pre>
+
+      <div class="card p-4 mb-4">
+        <div class="type-sample"><div class="type-label">2xl / 24px / 600</div><div style="font-size:24px;font-weight:600;color:var(--foreground);">页面主标题</div></div>
+        <div class="type-sample"><div class="type-label">xl / 20px / 600</div><div style="font-size:20px;font-weight:600;color:var(--foreground);">区块标题</div></div>
+        <div class="type-sample"><div class="type-label">lg / 18px / 500</div><div style="font-size:18px;font-weight:500;color:var(--foreground);">子标题</div></div>
+        <div class="type-sample"><div class="type-label">base / 14px / 400</div><div style="font-size:14px;font-weight:400;color:var(--color-primary-700);">正文内容 — 默认字号</div></div>
+        <div class="type-sample"><div class="type-label">sm / 13px / 400</div><div style="font-size:13px;font-weight:400;color:var(--color-primary-700);">辅助文本与按钮文字</div></div>
+        <div class="type-sample"><div class="type-label">xs / 12px / 400</div><div style="font-size:12px;font-weight:400;color:var(--muted-foreground);">标签、时间戳、元信息</div></div>
+      </div>
+      <table class="spec-table">
+        <thead><tr><th>级别</th><th>字号</th><th>字重</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">xs</td><td class="mono">12px</td><td>400</td><td>标签、时间戳</td></tr>
+          <tr><td class="mono">sm</td><td class="mono">13px</td><td>400/500</td><td>按钮、辅助文本</td></tr>
+          <tr><td class="mono">base</td><td class="mono">14px</td><td>400</td><td>正文默认</td></tr>
+          <tr><td class="mono">lg</td><td class="mono">18px</td><td>500</td><td>子标题</td></tr>
+          <tr><td class="mono">xl</td><td class="mono">20px</td><td>600</td><td>区块标题</td></tr>
+          <tr><td class="mono">2xl</td><td class="mono">24px</td><td>600</td><td>页面主标题</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="doc-subtitle" id="sec-2-3">2.3 组件样式</h3>
+      <p class="doc-p">以下为常用组件的实际渲染示例，均使用品牌 CSS 中的组件类（<span class="inline-code">btn-primary</span>、<span class="inline-code">input-base</span> 等）直接渲染。</p>
+
+      <h4 class="doc-h4">按钮</h4>
+      <div class="card p-4 mb-4">
+        <div class="flex flex-wrap items-center gap-3 mb-3">
+          <button class="btn-primary"><i data-lucide="plus" class="w-3.5 h-3.5"></i>新建文章</button>
+          <button class="btn-secondary"><i data-lucide="download" class="w-3.5 h-3.5"></i>导出</button>
+          <button class="btn-ghost"><i data-lucide="filter" class="w-3.5 h-3.5"></i>筛选</button>
+          <button class="btn-danger"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i>删除</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button class="btn-primary btn-sm">小号主按钮</button>
+          <button class="btn-secondary btn-sm">小号次按钮</button>
+          <button class="btn-primary" disabled>禁用状态</button>
+          <button class="btn-icon btn-secondary"><i data-lucide="settings" class="w-4 h-4"></i></button>
+        </div>
+      </div>
+      <table class="spec-table">
+        <thead><tr><th>类名</th><th>场景</th><th>样式特征</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">btn-primary</td><td>主操作（新建/发布）</td><td>墨底白字，opacity 0.88 hover</td></tr>
+          <tr><td class="mono">btn-secondary</td><td>次操作（导出/编辑）</td><td>白底墨字，hover 转 muted 背景</td></tr>
+          <tr><td class="mono">btn-ghost</td><td>辅助操作（筛选/排序）</td><td>透明底，hover 显示 muted 背景</td></tr>
+          <tr><td class="mono">btn-danger</td><td>危险操作（删除）</td><td>红色底白字，opacity 0.88 hover</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="doc-h4">输入框</h4>
+      <div class="card p-4 mb-4">
+        <div class="flex flex-col gap-3" style="max-width:360px;">
+          <input class="input-base" placeholder="输入文章标题..." />
+          <input class="input-base" value="使用 Tailwind CSS 构建博客" readonly style="background:var(--muted);" />
+          <input class="input-base" placeholder="聚焦状态演示" style="border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,0.08);" />
+        </div>
+      </div>
+
+      <h4 class="doc-h4">徽标 Badge</h4>
+      <div class="card p-4 mb-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="badge">默认</span>
+          <span class="badge badge-success"><i data-lucide="check" class="w-3 h-3"></i> 已发布</span>
+          <span class="badge badge-warning"><i data-lucide="clock" class="w-3 h-3"></i> 草稿</span>
+          <span class="badge badge-error"><i data-lucide="x" class="w-3 h-3"></i> 已删除</span>
+          <span class="badge badge-muted">待审核</span>
+        </div>
+      </div>
+
+      <h4 class="doc-h4">卡片</h4>
+      <div class="card p-4 mb-4" style="max-width:400px;">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-semibold text-foreground">文章总数</span>
+          <i data-lucide="file-text" class="w-4 h-4 text-muted-foreground"></i>
+        </div>
+        <div class="text-2xl font-semibold text-foreground mb-1">128</div>
+        <div class="text-xs text-muted-foreground flex items-center gap-1">
+          <i data-lucide="trending-up" class="w-3 h-3" style="color:var(--state-success);"></i>
+          <span style="color:var(--state-success);">+12%</span> 较上月
+        </div>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-2-4">2.4 图标系统</h3>
+      <p class="doc-p">图标统一使用 Lucide 图标库，线性风格，与整体极简设计语言一致。以下为常用图标及其尺寸规范：</p>
+      <div class="grid grid-cols-5 gap-3 mb-4">
+        <div class="icon-demo"><i data-lucide="file-text" class="w-5 h-5" style="color:var(--foreground);"></i><span>file-text / 20px</span></div>
+        <div class="icon-demo"><i data-lucide="tag" class="w-5 h-5" style="color:var(--foreground);"></i><span>tag / 20px</span></div>
+        <div class="icon-demo"><i data-lucide="message-square" class="w-5 h-5" style="color:var(--foreground);"></i><span>message / 20px</span></div>
+        <div class="icon-demo"><i data-lucide="image" class="w-5 h-5" style="color:var(--foreground);"></i><span>image / 20px</span></div>
+        <div class="icon-demo"><i data-lucide="settings" class="w-5 h-5" style="color:var(--foreground);"></i><span>settings / 20px</span></div>
+      </div>
+      <table class="spec-table">
+        <thead><tr><th>尺寸</th><th>场景</th><th>用法</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">14px</td><td>按钮内图标、徽标图标</td><td class="mono">w-3.5 h-3.5</td></tr>
+          <tr><td class="mono">16px</td><td>导航项、表格行操作</td><td class="mono">w-4 h-4</td></tr>
+          <tr><td class="mono">20px</td><td>页面级图标、空状态插图</td><td class="mono">w-5 h-5</td></tr>
+        </tbody>
+      </table>
+      <ul class="doc-ul">
+        <li>图标颜色继承 <span class="inline-code">currentColor</span>，跟随父元素文字色</li>
+        <li>导航项未激活时使用 <span class="inline-code">muted-foreground</span>，激活时使用 <span class="inline-code">foreground</span></li>
+        <li>禁止混用填充型（filled）与线性（outline）图标，统一使用 Lucide 线性风格</li>
+      </ul>
+
+      <h3 class="doc-subtitle" id="sec-2-5">2.5 交互反馈</h3>
+      <p class="doc-p">所有可交互元素需提供清晰的状态反馈，反馈方式按场景区分：</p>
+      <table class="spec-table">
+        <thead><tr><th style="width:100px;">状态</th><th>反馈方式</th><th>参数</th></tr></thead>
+        <tbody>
+          <tr><td><strong>hover</strong></td><td>降低不透明度或切换背景色</td><td class="mono">opacity: 0.88 / bg: muted</td></tr>
+          <tr><td><strong>active</strong></td><td>微下移位移</td><td class="mono">translateY(0.5px)</td></tr>
+          <tr><td><strong>focus</strong></td><td>聚焦环（蓝色半透明）</td><td class="mono">box-shadow: 0 0 0 3px ring/0.08</td></tr>
+          <tr><td><strong>loading</strong></td><td>旋转图标替换按钮文字</td><td class="mono">spinner animation</td></tr>
+          <tr><td><strong>success</strong></td><td>绿色 Toast 通知</td><td class="mono">3s 自动消失</td></tr>
+          <tr><td><strong>error</strong></td><td>红色 Toast 通知</td><td class="mono">需手动关闭</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- Section 3: 功能模块划分 -->
+    <!-- ================================================================ -->
+    <section class="doc-section" id="sec-3">
+      <h2 class="doc-section-title"><span class="doc-section-num">3</span>功能模块划分</h2>
+
+      <h3 class="doc-subtitle" id="sec-3-1">3.1 文章管理</h3>
+      <p class="doc-p">文章管理是后台核心模块，包含列表视图与编辑视图两个主界面，以及完整的发布流程与批量操作能力。</p>
+      <h4 class="doc-h4">列表视图</h4>
+      <ul class="doc-ul">
+        <li><strong>表格</strong>：展示标题、分类、标签、状态、更新时间、操作列，支持行 hover 高亮</li>
+        <li><strong>筛选器</strong>：顶部筛选栏，支持按状态（草稿/已发布/已删除）、分类、关键词筛选</li>
+        <li><strong>分页</strong>：底部翻页器，支持页码跳转与每页条数选择（10/20/50）</li>
+      </ul>
+      <h4 class="doc-h4">编辑视图</h4>
+      <ul class="doc-ul">
+        <li><strong>标题区</strong>：大输入框，支持实时字数统计</li>
+        <li><strong>编辑器</strong>：Markdown 编辑器，支持预览模式切换与全屏编辑</li>
+        <li><strong>元数据侧栏</strong>：分类选择、标签添加、摘要、封面图、URL slug、发布时间</li>
+      </ul>
+      <h4 class="doc-h4">发布流程</h4>
+      <div class="diagram">
+        <div class="diagram-label">文章发布状态流转</div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="rel-node"><i data-lucide="file-plus" class="w-3.5 h-3.5 inline mr-1"></i>新建</div>
+          <span class="rel-arrow">→</span>
+          <div class="rel-node" style="border-color:var(--state-warning);color:var(--state-warning);">草稿</div>
+          <span class="rel-arrow">→</span>
+          <div class="rel-node active"><i data-lucide="check" class="w-3.5 h-3.5 inline mr-1"></i>已发布</div>
+          <span class="rel-arrow">↔</span>
+          <div class="rel-node" style="border-color:var(--state-error);color:var(--state-error);">已删除</div>
+        </div>
+        <p class="doc-p mt-3" style="margin-bottom:0;">草稿可反复编辑预览；发布后支持「取消发布」回退为草稿；删除支持软删除与回收站恢复。</p>
+      </div>
+      <h4 class="doc-h4">批量操作</h4>
+      <ul class="doc-ul">
+        <li>勾选多篇文章后，底部出现批量操作栏：批量发布、批量移至分类、批量删除</li>
+        <li>危险操作（批量删除）需二次确认弹窗</li>
+      </ul>
+
+      <h3 class="doc-subtitle" id="sec-3-2">3.2 分类管理</h3>
+      <p class="doc-p">分类与标签共用一个管理界面，通过顶部 Tab 切换。</p>
+      <ul class="doc-ul">
+        <li><strong>Tab 切换器</strong>：分类 / 标签 两个标签页，切换时保留各自的筛选与分页状态</li>
+        <li><strong>新增表单</strong>：名称、slug（自动生成）、父级分类（树形下拉）、描述</li>
+        <li><strong>拖拽排序</strong>：分类列表支持拖拽调整层级与排序顺序，拖拽时显示占位线</li>
+        <li><strong>CRUD 操作</strong>：每行支持内联编辑、删除（带关联文章数提示）</li>
+      </ul>
+
+      <h3 class="doc-subtitle" id="sec-3-3">3.3 标签管理</h3>
+      <p class="doc-p">标签管理与分类管理界面一致，额外支持标签云展示模式：</p>
+      <ul class="doc-ul">
+        <li><strong>标签云</strong>：以词云形式展示所有标签，字号映射使用次数，点击进入该标签的文章列表</li>
+        <li><strong>合并标签</strong>：支持将多个标签合并为一个，迁移关联文章</li>
+      </ul>
+      <div class="card p-4 mb-4 flex flex-wrap gap-2" style="max-width:480px;">
+        <span class="badge badge-muted" style="font-size:13px;">设计 (12)</span>
+        <span class="badge badge-muted" style="font-size:16px;">前端 (28)</span>
+        <span class="badge badge-muted" style="font-size:12px;">CSS (6)</span>
+        <span class="badge badge-muted" style="font-size:15px;">TypeScript (19)</span>
+        <span class="badge badge-muted" style="font-size:13px;">后端 (10)</span>
+        <span class="badge badge-muted" style="font-size:11px;">Docker (3)</span>
+        <span class="badge badge-muted" style="font-size:14px;">React (22)</span>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-3-4">3.4 评论管理</h3>
+      <p class="doc-p">评论管理以状态分组展示，支持快速审核与批量操作。</p>
+      <ul class="doc-ul">
+        <li><strong>状态标签页</strong>：待审核 / 已通过 / 垃圾评论，切换时显示各状态计数</li>
+        <li><strong>评论卡片</strong>：展示评论者头像、昵称、邮箱、评论内容、所属文章、时间</li>
+        <li><strong>快速操作</strong>：每张卡片支持通过、加精、标为垃圾、删除四个快捷按钮</li>
+        <li><strong>批量审核</strong>：勾选多条评论后批量通过或批量标为垃圾</li>
+      </ul>
+      <div class="card p-4 mb-4" style="max-width:520px;">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0" style="background:var(--muted);color:var(--muted-foreground);">张</div>
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-sm font-semibold text-foreground">张三</span>
+              <span class="badge badge-warning">待审核</span>
+              <span class="text-xs text-muted-foreground">2 小时前</span>
+            </div>
+            <p class="text-sm text-foreground mb-2">这篇文章对 Flex 布局的讲解非常清晰，受益匪浅。</p>
+            <div class="flex items-center gap-2">
+              <button class="btn-ghost btn-sm"><i data-lucide="check" class="w-3 h-3"></i>通过</button>
+              <button class="btn-ghost btn-sm"><i data-lucide="star" class="w-3 h-3"></i>加精</button>
+              <button class="btn-ghost btn-sm"><i data-lucide="flag" class="w-3 h-3"></i>垃圾</button>
+              <button class="btn-ghost btn-sm" style="color:var(--state-error);"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-3-5">3.5 用户管理</h3>
+      <p class="doc-p">用户管理面向管理员，包含权限矩阵、个人资料编辑与角色分配功能。</p>
+      <ul class="doc-ul">
+        <li><strong>权限矩阵</strong>：以表格形式展示各角色（管理员/编辑/作者）对各模块的操作权限</li>
+        <li><strong>个人资料</strong>：头像上传、昵称、邮箱、个人简介、社交链接</li>
+        <li><strong>角色分配</strong>：管理员可分配/撤销用户角色，变更需操作日志留痕</li>
+      </ul>
+      <table class="spec-table">
+        <thead><tr><th>模块</th><th>管理员</th><th>编辑</th><th>作者</th></tr></thead>
+        <tbody>
+          <tr><td>文章</td><td>全部</td><td>全部</td><td>仅自己</td></tr>
+          <tr><td>分类/标签</td><td>读写</td><td>读写</td><td>只读</td></tr>
+          <tr><td>评论</td><td>全部</td><td>全部</td><td>-</td></tr>
+          <tr><td>系统设置</td><td>读写</td><td>-</td><td>-</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="doc-subtitle" id="sec-3-6">3.6 模块关系图</h3>
+      <p class="doc-p">以下示意图展示各功能模块间的导航流转关系，箭头方向表示典型的用户操作路径：</p>
+      <div class="diagram">
+        <div class="diagram-label">模块导航关系</div>
+        <div class="flex flex-col items-center gap-3">
+          <div class="rel-node active" style="min-width:120px;">概览 Dashboard</div>
+          <span class="rel-arrow">↓</span>
+          <div class="flex gap-3 flex-wrap justify-center">
+            <div class="rel-node">文章管理</div>
+            <div class="rel-node">分类标签</div>
+            <div class="rel-node">评论管理</div>
+            <div class="rel-node">媒体库</div>
+          </div>
+          <span class="rel-arrow">↓</span>
+          <div class="flex gap-3 flex-wrap justify-center">
+            <div class="rel-node" style="border-color:var(--state-info);color:var(--state-info);">编辑器</div>
+            <div class="rel-node" style="border-color:var(--state-info);color:var(--state-info);">新增/编辑</div>
+            <div class="rel-node" style="border-color:var(--state-info);color:var(--state-info);">详情/回复</div>
+            <div class="rel-node" style="border-color:var(--state-info);color:var(--state-info);">上传/裁剪</div>
+          </div>
+          <span class="rel-arrow">↓</span>
+          <div class="rel-node" style="min-width:120px;border-color:var(--muted-foreground);color:var(--muted-foreground);">系统设置</div>
+        </div>
+        <p class="doc-p mt-3" style="margin-bottom:0;">用户从概览页进入各功能模块，在各模块内完成增删改查操作后返回列表。系统设置为独立终端节点。</p>
+      </div>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- Section 4: 响应式设计 -->
+    <!-- ================================================================ -->
+    <section class="doc-section" id="sec-4">
+      <h2 class="doc-section-title"><span class="doc-section-num">4</span>响应式设计</h2>
+      <p class="doc-p">后台界面需适配桌面、平板、移动端三种场景，各断点下的布局策略如下：</p>
+
+      <h3 class="doc-subtitle" id="sec-4-1">4.1 桌面端（≥ 1200px）</h3>
+      <ul class="doc-ul">
+        <li>侧边栏完整展开 240px，显示图标 + 文字标签</li>
+        <li>统计卡片网格 4 列排列</li>
+        <li>数据表格展示全部列，无横向滚动</li>
+        <li>编辑器双栏布局（编辑区 + 元数据侧栏并排）</li>
+      </ul>
+
+      <h3 class="doc-subtitle" id="sec-4-2">4.2 平板端（768px - 1199px）</h3>
+      <ul class="doc-ul">
+        <li>侧边栏收缩为 64px，仅显示图标，hover 显示 tooltip 提示文字</li>
+        <li>统计卡片网格 2 列排列</li>
+        <li>表格隐藏次要列（如标签、更新时间），保留核心信息列</li>
+        <li>编辑器元数据侧栏折叠为底部抽屉或折叠面板</li>
+      </ul>
+
+      <h3 class="doc-subtitle" id="sec-4-3">4.3 移动端（&lt; 768px）</h3>
+      <ul class="doc-ul">
+        <li>侧边栏转为抽屉模式，默认隐藏，点击左上角汉堡按钮滑入，带遮罩层</li>
+        <li>统计卡片单列堆叠展示</li>
+        <li>表格转为卡片列表模式，每条记录以卡片形式纵向排列</li>
+        <li>底部固定操作栏（批量发布/删除），替代表格内的行内操作</li>
+      </ul>
+
+      <h3 class="doc-subtitle" id="sec-4-4">4.4 设备预览</h3>
+      <p class="doc-p">以下为三种设备下的布局形态预览示意：</p>
+      <div class="grid grid-cols-3 gap-4">
+        <!-- Desktop -->
+        <div>
+          <div class="device-label">桌面端 ≥1200px</div>
+          <div class="device-mockup" style="aspect-ratio:16/10;">
+            <div class="flex h-full">
+              <div style="width:25%;background:var(--primary);border-right:1px solid var(--border);">
+                <div class="d-box h-[20%] text-[7px]" style="color:var(--primary-foreground);border-bottom:1px solid rgba(255,255,255,0.1);">Logo</div>
+                <div class="flex flex-col gap-1 p-1.5">
+                  <div class="d-box h-3 text-[6px]" style="background:rgba(255,255,255,0.12);color:var(--primary-foreground);">内容</div>
+                  <div class="d-box h-3 text-[6px]" style="background:rgba(255,255,255,0.12);color:var(--primary-foreground);">界面</div>
+                  <div class="d-box h-3 text-[6px]" style="background:rgba(255,255,255,0.12);color:var(--primary-foreground);">系统</div>
+                </div>
+              </div>
+              <div class="flex-1 flex flex-col">
+                <div class="d-box h-[20%] text-[7px] border-b" style="background:var(--card);">顶栏</div>
+                <div class="flex-1 p-1.5 flex flex-col gap-1" style="background:var(--background);">
+                  <div class="flex gap-1">
+                    <div class="d-box flex-1 h-6 text-[6px]" style="background:var(--card);">卡片1</div>
+                    <div class="d-box flex-1 h-6 text-[6px]" style="background:var(--card);">卡片2</div>
+                    <div class="d-box flex-1 h-6 text-[6px]" style="background:var(--card);">卡片3</div>
+                    <div class="d-box flex-1 h-6 text-[6px]" style="background:var(--card);">卡片4</div>
+                  </div>
+                  <div class="d-box flex-1 text-[6px]" style="background:var(--card);">数据表格</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tablet -->
+        <div>
+          <div class="device-label">平板端 768-1199px</div>
+          <div class="device-mockup" style="aspect-ratio:3/4;">
+            <div class="flex h-full">
+              <div style="width:18%;background:var(--primary);">
+                <div class="d-box h-[12%] text-[6px]" style="color:var(--primary-foreground);">L</div>
+                <div class="flex flex-col items-center gap-2 pt-3">
+                  <i data-lucide="file-text" class="w-3 h-3" style="color:rgba(255,255,255,0.6);"></i>
+                  <i data-lucide="tag" class="w-3 h-3" style="color:rgba(255,255,255,0.6);"></i>
+                  <i data-lucide="settings" class="w-3 h-3" style="color:rgba(255,255,255,0.6);"></i>
+                </div>
+              </div>
+              <div class="flex-1 flex flex-col">
+                <div class="d-box h-[12%] text-[7px] border-b" style="background:var(--card);">顶栏</div>
+                <div class="flex-1 p-2 flex flex-col gap-1.5" style="background:var(--background);">
+                  <div class="flex gap-1">
+                    <div class="d-box flex-1 h-7 text-[6px]" style="background:var(--card);">卡片1</div>
+                    <div class="d-box flex-1 h-7 text-[6px]" style="background:var(--card);">卡片2</div>
+                  </div>
+                  <div class="d-box flex-1 text-[6px]" style="background:var(--card);">表格（精简列）</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile -->
+        <div>
+          <div class="device-label">移动端 &lt;768px</div>
+          <div class="device-mockup" style="aspect-ratio:9/16;">
+            <div class="flex flex-col h-full">
+              <div class="d-box h-[10%] text-[7px] border-b flex justify-between px-2" style="background:var(--card);">
+                <i data-lucide="menu" class="w-3 h-3" style="color:var(--foreground);"></i>
+                <span>标题</span>
+                <i data-lucide="plus" class="w-3 h-3" style="color:var(--foreground);"></i>
+              </div>
+              <div class="flex-1 p-1.5 flex flex-col gap-1" style="background:var(--background);">
+                <div class="d-box h-8 text-[6px]" style="background:var(--card);">卡片</div>
+                <div class="d-box h-8 text-[6px]" style="background:var(--card);">卡片</div>
+                <div class="d-box h-8 text-[6px]" style="background:var(--card);">卡片</div>
+                <div class="d-box flex-1 text-[6px]" style="background:var(--card);">列表</div>
+              </div>
+              <div class="d-box h-[10%] text-[7px] border-t" style="background:var(--card);justify-content:space-around;">
+                <span>发布</span><span style="color:var(--state-error);">删除</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- Section 5: 交互体验优化 -->
+    <!-- ================================================================ -->
+    <section class="doc-section" id="sec-5">
+      <h2 class="doc-section-title"><span class="doc-section-num">5</span>交互体验优化</h2>
+
+      <h3 class="doc-subtitle" id="sec-5-1">5.1 表单交互</h3>
+      <p class="doc-p">表单是后台使用频率最高的交互载体，需在输入效率与错误预防两方面做到细致：</p>
+      <ul class="doc-ul">
+        <li><strong>行内校验</strong>：输入失焦时实时校验，错误信息显示在字段下方，红色边框 + 提示文字</li>
+        <li><strong>自动填充</strong>：填写标题时自动生成 URL slug，支持手动覆盖</li>
+        <li><strong>错误提示</strong>：错误提示位于字段正下方，字号 xs，颜色 error，不使用弹窗打断流程</li>
+        <li><strong>字数统计</strong>：标题、摘要等限长字段显示「当前字数 / 上限」计数器</li>
+      </ul>
+      <div class="card p-4 mb-4" style="max-width:440px;">
+        <label class="text-xs font-medium text-muted-foreground mb-1 block">文章标题</label>
+        <input class="input-base" value="使用 Tailwind 构建" style="max-width:260px;" />
+        <div class="flex items-center justify-between mt-1">
+          <span class="text-xs" style="color:var(--state-error);">标题不能为空（至少 5 字）</span>
+          <span class="text-xs text-muted-foreground mono">8 / 100</span>
+        </div>
+        <label class="text-xs font-medium text-muted-foreground mb-1 block mt-3">URL Slug</label>
+        <input class="input-base" value="use-tailwind-to-build" style="font-family:var(--font-mono);font-size:12px;" />
+        <div class="text-xs text-muted-foreground mt-1">由标题自动生成，可手动修改</div>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-5-2">5.2 数据展示</h3>
+      <p class="doc-p">列表数据的展示需兼顾信息密度与浏览效率：</p>
+      <ul class="doc-ul">
+        <li><strong>表格/列表切换</strong>：右上角提供表格视图与卡片列表视图的切换按钮，记忆用户偏好</li>
+        <li><strong>粘性表头</strong>：表格滚动时表头固定在顶部（sticky），始终可见列名</li>
+        <li><strong>可排序列</strong>：点击列头切换升序/降序，排序图标随状态变化</li>
+        <li><strong>分页器</strong>：底部分页器支持页码跳转，右侧提供每页条数下拉选择器（10/20/50）</li>
+      </ul>
+      <div class="card p-4 mb-4">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-semibold text-foreground">文章列表</span>
+          <div class="flex items-center gap-1">
+            <button class="btn-icon btn-secondary" style="background:var(--muted);"><i data-lucide="table" class="w-3.5 h-3.5"></i></button>
+            <button class="btn-icon btn-secondary"><i data-lucide="list" class="w-3.5 h-3.5"></i></button>
+          </div>
+        </div>
+        <table class="spec-table">
+          <thead><tr>
+            <th><span class="flex items-center gap-1">标题 <i data-lucide="chevron-up" class="w-3 h-3"></i></span></th>
+            <th>状态</th>
+            <th>更新时间</th>
+          </tr></thead>
+          <tbody>
+            <tr class="row-hover"><td>CSS Grid 布局指南</td><td><span class="badge badge-success">已发布</span></td><td class="mono text-xs">09-20</td></tr>
+            <tr class="row-hover"><td>TypeScript 类型体操</td><td><span class="badge badge-warning">草稿</span></td><td class="mono text-xs">09-19</td></tr>
+            <tr class="row-hover"><td>React 性能优化</td><td><span class="badge badge-success">已发布</span></td><td class="mono text-xs">09-18</td></tr>
+          </tbody>
+        </table>
+        <div class="flex items-center justify-between mt-3">
+          <span class="text-xs text-muted-foreground">共 128 条 · 第 1/13 页</span>
+          <div class="flex items-center gap-2">
+            <button class="btn-icon btn-secondary" disabled><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
+            <span class="text-xs text-foreground font-medium">1</span>
+            <button class="btn-icon btn-secondary"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
+            <select class="input-base" style="width:auto;padding:4px 8px;font-size:12px;"><option>10 条/页</option></select>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-5-3">5.3 搜索与筛选</h3>
+      <p class="doc-p">搜索与筛选是列表页的核心导航能力，需做到即时响应且可组合使用：</p>
+      <ul class="doc-ul">
+        <li><strong>关键词搜索</strong>：输入框带 debounce（300ms），避免高频请求，回车立即触发</li>
+        <li><strong>多条件筛选</strong>：支持状态 + 分类 + 日期范围的组合筛选，筛选条件以标签形式展示在列表上方</li>
+        <li><strong>保存筛选</strong>：常用筛选组合可保存为快捷筛选，下次一键应用</li>
+      </ul>
+      <div class="card p-4 mb-4">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="relative flex-1" style="max-width:240px;">
+            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"></i>
+            <input class="input-base" placeholder="搜索文章标题..." style="padding-left:30px;" />
+          </div>
+          <button class="btn-secondary btn-sm"><i data-lucide="filter" class="w-3 h-3"></i>筛选</button>
+          <button class="btn-ghost btn-sm"><i data-lucide="bookmark" class="w-3 h-3"></i>保存</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs text-muted-foreground">已应用：</span>
+          <span class="badge badge-success">状态：已发布</span>
+          <span class="badge badge-muted">分类：前端</span>
+          <span class="badge badge-muted">近 7 天</span>
+          <button class="btn-ghost btn-sm" style="padding:2px 6px;"><i data-lucide="x" class="w-3 h-3"></i>清除</button>
+        </div>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-5-4">5.4 批量操作</h3>
+      <p class="doc-p">批量操作用于提升管理效率，交互流程如下：</p>
+      <ul class="doc-ul">
+        <li><strong>选择机制</strong>：每行首列为 Checkbox，支持单选与跨页选择</li>
+        <li><strong>全选</strong>：表头 Checkbox 支持全选当前页，可选「选择全部 N 条」</li>
+        <li><strong>操作栏</strong>：选中后底部浮出批量操作栏，显示已选数量与可用操作</li>
+        <li><strong>确认弹窗</strong>：危险操作（删除）弹出确认对话框，显示影响范围</li>
+      </ul>
+      <div class="card p-3 mb-4 flex items-center justify-between" style="max-width:480px;background:var(--muted);">
+        <div class="flex items-center gap-3">
+          <i data-lucide="check-square" class="w-4 h-4 text-primary"></i>
+          <span class="text-sm font-medium text-foreground">已选择 5 篇文章</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn-primary btn-sm"><i data-lucide="send" class="w-3 h-3"></i>批量发布</button>
+          <button class="btn-secondary btn-sm"><i data-lucide="folder" class="w-3 h-3"></i>移至分类</button>
+          <button class="btn-danger btn-sm"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
+        </div>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-5-5">5.5 加载状态</h3>
+      <p class="doc-p">加载状态需在不同场景下给用户明确的「正在处理」信号：</p>
+      <ul class="doc-ul">
+        <li><strong>骨架屏</strong>：首次加载列表时显示骨架屏（灰色占位条 + 闪烁动画），而非空白页</li>
+        <li><strong>旋转遮罩</strong>：按钮提交、表格刷新时叠加半透明遮罩 + 居中 spinner</li>
+        <li><strong>渐进加载</strong>：长列表支持滚动到底部自动加载下一页（infinite scroll），底部显示加载指示器</li>
+      </ul>
+      <div class="card p-4 mb-4">
+        <div class="flex flex-col gap-2" style="max-width:360px;">
+          <div class="skeleton-bar" style="width:60%;"></div>
+          <div class="skeleton-bar" style="width:100%;"></div>
+          <div class="skeleton-bar" style="width:80%;"></div>
+          <div class="skeleton-bar" style="width:45%;"></div>
+        </div>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-5-6">5.6 错误处理</h3>
+      <p class="doc-p">错误处理需在视觉上明确区分，并提供恢复路径：</p>
+      <ul class="doc-ul">
+        <li><strong>错误边界</strong>：页面级错误由 Error Boundary 捕获，展示错误插图 + 错误摘要</li>
+        <li><strong>重试按钮</strong>：网络请求失败时展示空状态卡片，内含「重试」按钮</li>
+        <li><strong>空状态</strong>：无数据时展示空状态插图 + 引导文案 + 新建按钮，而非空白表格</li>
+      </ul>
+      <div class="card p-6 mb-4 text-center" style="max-width:360px;margin:0 auto;">
+        <div class="flex justify-center mb-3">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background:var(--state-error-light);">
+            <i data-lucide="cloud-off" class="w-6 h-6" style="color:var(--state-error);"></i>
+          </div>
+        </div>
+        <p class="text-sm font-semibold text-foreground mb-1">加载失败</p>
+        <p class="text-xs text-muted-foreground mb-3">网络连接异常，请检查后重试</p>
+        <button class="btn-primary btn-sm mx-auto"><i data-lucide="refresh-cw" class="w-3 h-3"></i>重试</button>
+      </div>
+
+      <h3 class="doc-subtitle" id="sec-5-7">5.7 通知提示</h3>
+      <p class="doc-p">操作结果通过 Toast 通知反馈，出现在屏幕右上角，不阻断操作流：</p>
+      <ul class="doc-ul">
+        <li><strong>成功（绿色）</strong>：操作完成后显示，3 秒后自动消失</li>
+        <li><strong>错误（红色）</strong>：操作失败时显示，需手动关闭，确保用户看到错误信息</li>
+        <li><strong>信息（蓝色）</strong>：中性提示（如「正在后台处理」），3 秒后自动消失</li>
+      </ul>
+      <div class="flex flex-col gap-2" style="max-width:360px;">
+        <div class="toast-demo toast-success">
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+          <span>文章发布成功</span>
+        </div>
+        <div class="toast-demo toast-error">
+          <i data-lucide="x-circle" class="w-4 h-4"></i>
+          <span>删除失败：该分类下仍有文章</span>
+          <i data-lucide="x" class="w-3.5 h-3.5 ml-auto cursor-pointer"></i>
+        </div>
+        <div class="toast-demo toast-info">
+          <i data-lucide="info" class="w-4 h-4"></i>
+          <span>正在导出数据，完成后将通知您</span>
+        </div>
+      </div>
+
+      <div class="mt-12 pt-8 border-t border-border text-center">
+        <p class="text-xs text-muted-foreground">太平博客管理后台 · 设计规范文档 · v1.0</p>
+        <p class="text-xs text-muted-foreground mt-1">Ink Monochrome Design System · 2026</p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <nav class="mobile-nav">
+    <a class="mobile-nav-item" data-dom-id="nav-dashboard" href="#">
+      <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+      <span>概览</span>
+    </a>
+    <a class="mobile-nav-item" data-dom-id="nav-post-list" href="#">
+      <i data-lucide="file-text" class="w-5 h-5"></i>
+      <span>文章</span>
+    </a>
+    <a class="mobile-nav-item" data-dom-id="nav-moments" href="#">
+      <i data-lucide="message-circle" class="w-5 h-5"></i>
+      <span>说说</span>
+    </a>
+    <a class="mobile-nav-item" data-dom-id="nav-comment-audit" href="#">
+      <i data-lucide="message-square" class="w-5 h-5"></i>
+      <span>评论</span>
+    </a>
+    <a class="mobile-nav-item active" data-dom-id="nav-settings" href="#">
+      <i data-lucide="user" class="w-5 h-5"></i>
+      <span>我的</span>
+    </a>
+  </nav>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

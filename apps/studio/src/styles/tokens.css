@@ -1,0 +1,203 @@
+/* ==========================================================================
+   Taiping Studio — Design Tokens
+   风格：Ink Monochrome（墨色极简单色系）
+   基准：8px 栅格 / 5 级字阶 / 3 档圆角
+   来源：docs/design-optimization/B端设计优化方案.md §5.1
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---------- 中性色 ---------- */
+  --background: #f7f7f7;
+  --card: #ffffff;
+  --secondary: #fcfcfc;
+  --muted: #f5f5f5;
+
+  --foreground: #2e2e2e;
+  --muted-foreground: #777777;
+  --disabled-foreground: #b0b0b0;
+
+  --border: #e8e8e8;
+  --border-subtle: #f0f0f0;
+
+  /* ---------- 功能色（5 语义位） ---------- */
+  --color-success: #3f7d3a;
+  --color-success-bg: #f0f7ef;
+  --color-warning: #8f6b16;
+  --color-warning-bg: #faf5e8;
+  --color-error: #b83a3a;
+  --color-error-bg: #fbf0f0;
+  --color-info: #2c6599;
+  --color-info-bg: #eff5fa;
+  --color-link: #2c6599;
+
+  /* ---------- 兼容别名 ----------
+     供既有 .tsx / .css 引用，保证平滑过渡。
+     新代码请使用 --color-* 系列。 */
+  --state-success: var(--color-success);
+  --state-warning: var(--color-warning);
+  --state-error: var(--color-error);
+  --state-info: var(--color-info);
+
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+  --destructive: var(--color-error);
+  --info: var(--color-info);
+  --destructive-foreground: #ffffff;
+
+  /* ---------- 主色 ---------- */
+  --primary: #2e2e2e;
+  --primary-foreground: #ffffff;
+
+  /* 主色阶（热力图等数据可视化使用） */
+  --primary-50: #f5f5f5;
+  --primary-100: #e8e8e8;
+  --primary-200: #d4d4d4;
+  --primary-300: #a3a3a3;
+  --primary-400: #737373;
+  --primary-500: #525252;
+  --primary-600: #404040;
+  --primary-700: #2e2e2e;
+
+  /* ---------- 前景色别名 ---------- */
+  --card-foreground: var(--foreground);
+  --secondary-foreground: var(--foreground);
+  --success-foreground: #ffffff;
+  --warning-foreground: #ffffff;
+  --info-foreground: #ffffff;
+
+  /* ---------- 焦点 ---------- */
+  --ring: #2e6ea8;
+
+  /* ---------- 排版 ---------- */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+
+  --text-display: 20px;
+  --leading-display: 28px;
+  --text-title: 16px;
+  --leading-title: 24px;
+  --text-body: 14px;
+  --leading-body: 22px;
+  --text-label: 13px;
+  --leading-label: 20px;
+  --text-caption: 12px;
+  --leading-caption: 18px;
+
+  /* ---------- 间距（8px 栅格） ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ---------- 圆角 ---------- */
+  --radius: 5px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+
+  /* ---------- 阴影（仅浮层） ---------- */
+  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+
+  /* ---------- 动效 ---------- */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 240ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---------- 布局 ---------- */
+  --sidebar-width: 240px;
+  --content-max-width: 1024px;
+
+  /* ---------- 滚动条 ---------- */
+  --scroll-thumb: rgba(46, 46, 46, 0.22);
+  --scroll-thumb-hover: rgba(46, 46, 46, 0.36);
+}
+
+/* ---------- 全局基线 ---------- */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 焦点可见性 */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* 数字等宽 */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 折行约束：功能性元素不折行，长文本段落允许折行
+   详见 docs/design-optimization/B端设计优化方案.md §2.4.1 */
+button,
+.btn,
+.badge,
+.pill,
+.tag,
+.status,
+table th,
+.nav-item,
+.tab-item,
+.field-label {
+  white-space: nowrap;
+}
+
+table.admin-data-table th:not(:first-child),
+table.admin-data-table td:not(:first-child) {
+  white-space: nowrap;
+}
+
+p,
+.description,
+.summary,
+.note {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* 骨架屏 */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    var(--border-subtle) 37%,
+    var(--muted) 63%
+  );
+  background-size: 400% 100%;
+  border-radius: var(--radius-sm);
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* 动效安全：尊重系统偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@taiping/content-model",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./post": "./src/post.ts",
+    "./moment": "./src/moment.ts",
+    "./comment": "./src/comment.ts",
+    "./settings": "./src/settings.ts",
+    "./api": "./src/api.ts",
+    "./term": "./src/term.ts",
+    "./media": "./src/media.ts",
+    "./auth": "./src/auth.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

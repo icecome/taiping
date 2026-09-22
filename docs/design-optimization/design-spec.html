@@ -1,0 +1,1021 @@
+<!-- AI生成 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>太平后台 · 设计规范 (Ink Monochrome)</title>
+<style>
+/* ==========================================================================
+   Taiping Studio Design Spec
+   本页即规范的可视化呈现：所有取值来自 tokens 定义
+   ========================================================================== */
+:root {
+  color-scheme: light;
+  --background: #f7f7f7;
+  --card: #ffffff;
+  --secondary: #fcfcfc;
+  --muted: #f5f5f5;
+  --foreground: #2e2e2e;
+  --muted-foreground: #777777;
+  --disabled-foreground: #b0b0b0;
+  --border: #e8e8e8;
+  --border-subtle: #f0f0f0;
+
+  --color-success: #3f7d3a;   --color-success-bg: #f0f7ef;
+  --color-warning: #8f6b16;   --color-warning-bg: #faf5e8;
+  --color-error: #b83a3a;     --color-error-bg: #fbf0f0;
+  --color-info: #2c6599;      --color-info-bg: #eff5fa;
+
+  --primary: #2e2e2e;
+  --ring: #2e6ea8;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+  --radius-sm: 3px; --radius-md: 5px; --radius-lg: 8px; --radius-full: 9999px;
+
+  --shadow-floating: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+  --duration-fast: 120ms; --duration-base: 180ms; --duration-slow: 240ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; border-color: var(--border); }
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 22px;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--color-info); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code, .mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
+
+/* ==========================================================================
+   全局不折行约束
+   功能性短文本（按钮/徽章/标签/状态/表头/操作）一律不折行；
+   仅长文本段落允许折行（正文、描述、摘要）。
+   空间不足时由容器适配或截断（配 title），而非折行。
+   ========================================================================== */
+button, .btn, .badge, .pill, .btn-sm, .btn-lg,
+table.data th, table.data td .muted-cell,
+.toc a, .field-label, .empty-title, .swatch-name {
+  white-space: nowrap;
+}
+
+/* 长文本段落 —— 显式允许折行 */
+.sec-desc, .page-desc, .swatch-use, .meta-line,
+.field-desc, .empty-desc, .note, p {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* ---------- 页面骨架 ---------- */
+.layout { display: flex; min-height: 100vh; }
+
+.toc {
+  width: 220px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: var(--space-6) var(--space-5);
+}
+.toc-title {
+  font-size: 16px; font-weight: 600; line-height: 24px;
+  margin: 0 0 var(--space-1);
+}
+.toc-sub {
+  font-size: 12px; color: var(--muted-foreground);
+  margin: 0 0 var(--space-5);
+  line-height: 18px;
+}
+.toc a {
+  display: block;
+  padding: 6px var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-standard),
+              color var(--duration-fast) var(--ease-standard);
+}
+.toc a:hover { background: var(--muted); color: var(--foreground); text-decoration: none; }
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-8) var(--space-8) 96px;
+  max-width: 1100px;
+}
+
+/* ---------- 章节 ---------- */
+section { margin-bottom: 56px; scroll-margin-top: 24px; }
+
+h1 {
+  font-size: 20px; font-weight: 600; line-height: 28px;
+  margin: 0 0 var(--space-1);
+}
+.page-desc {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  margin: 0 0 var(--space-8);
+}
+
+h2 {
+  font-size: 16px; font-weight: 600; line-height: 24px;
+  margin: 0 0 var(--space-1);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.sec-desc {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  margin: var(--space-3) 0 var(--space-5);
+  line-height: 20px;
+}
+
+h3 {
+  font-size: 13px; font-weight: 600; line-height: 20px;
+  margin: var(--space-6) 0 var(--space-3);
+  color: var(--foreground);
+}
+
+/* ---------- 卡片 ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.card-body { padding: var(--space-5); }
+
+.grid { display: grid; gap: var(--space-4); }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+/* ---------- 色板 ---------- */
+.swatch {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--card);
+}
+.swatch-color { height: 64px; }
+.swatch-meta { padding: var(--space-3); border-top: 1px solid var(--border); }
+.swatch-name { font-size: 13px; font-weight: 500; white-space: nowrap; }
+.swatch-hex {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-top: 2px;
+}
+.swatch-use {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-top: var(--space-2);
+  line-height: 16px;
+}
+.swatch-fn .swatch-color {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 500;
+}
+
+/* ---------- 字阶 ---------- */
+.type-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-5);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.type-row:last-child { border-bottom: 0; }
+.type-label {
+  width: 108px; flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-foreground);
+  line-height: 16px;
+}
+.type-sample { flex: 1; min-width: 0; }
+.type-meta {
+  width: 150px; flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-foreground);
+  text-align: right;
+  line-height: 16px;
+}
+
+/* ---------- 间距 ---------- */
+.space-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+}
+.space-label {
+  width: 120px; flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.space-bar {
+  height: 16px;
+  background: var(--primary);
+  border-radius: 2px;
+  opacity: 0.82;
+}
+
+/* ---------- 圆角 / 阴影 ---------- */
+.radius-demo {
+  height: 72px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.shadow-demo {
+  height: 72px;
+  background: var(--card);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px;
+  height: 34px; padding: 0 16px;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--duration-fast) var(--ease-standard),
+              background var(--duration-fast) var(--ease-standard),
+              border-color var(--duration-fast) var(--ease-standard);
+}
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-primary:hover { opacity: 0.88; }
+.btn-secondary { background: var(--card); color: var(--foreground); border-color: var(--border); }
+.btn-secondary:hover { background: var(--muted); }
+.btn-ghost { background: transparent; color: var(--foreground); border-color: transparent; }
+.btn-ghost:hover { background: var(--muted); }
+.btn-danger { background: var(--color-error); color: #fff; border-color: var(--color-error); }
+.btn-danger:hover { opacity: 0.88; }
+.btn-link {
+  background: transparent; color: var(--color-info);
+  border-color: transparent; padding: 0 4px;
+}
+.btn-link:hover { text-decoration: underline; }
+
+.btn-sm { height: 28px; padding: 0 12px; font-size: 12px; }
+.btn-lg { height: 40px; padding: 0 20px; font-size: 14px; }
+.btn-icon { width: 34px; padding: 0; }
+
+.btn-row {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--space-3);
+}
+
+/* ---------- 徽章 ---------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px;
+  font-size: 12px; font-weight: 500; line-height: 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+  white-space: nowrap;   /* 功能性短文本不折行 */
+  flex-shrink: 0;
+}
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.75; }
+.badge-success { color: var(--color-success); background: var(--color-success-bg); border-color: var(--color-success); }
+.badge-warning { color: var(--color-warning); background: var(--color-warning-bg); border-color: var(--color-warning); }
+.badge-error   { color: var(--color-error);   background: var(--color-error-bg);   border-color: var(--color-error); }
+.badge-info    { color: var(--color-info);    background: var(--color-info-bg);    border-color: var(--color-info); }
+.badge-muted   { color: var(--muted-foreground); background: var(--muted); border-color: var(--border); }
+
+/* ---------- 输入 ---------- */
+.field { display: flex; flex-direction: column; gap: var(--space-2); }
+.field-label { font-size: 13px; font-weight: 500; white-space: nowrap; }
+.field-desc { font-size: 12px; color: var(--muted-foreground); line-height: 18px; }
+.input {
+  height: 34px; padding: 0 12px;
+  font-family: inherit; font-size: 13px;
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+.input::placeholder { color: var(--disabled-foreground); }
+.input:hover { border-color: #d4d4d4; }
+.input:focus { border-color: var(--primary); }
+.input:disabled { background: var(--muted); color: var(--disabled-foreground); cursor: not-allowed; }
+
+/* ---------- 表格 ---------- */
+table.data {
+  width: 100%;
+  border-collapse: separate; border-spacing: 0;
+  font-size: 14px;
+}
+table.data th {
+  text-align: left;
+  font-weight: 600; font-size: 14px;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+  white-space: nowrap;   /* 表头不折行 */
+}
+table.data td {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+/* 状态/时间/操作列 —— 不折行（仅标题列允许折行） */
+table.data th:not(:first-child),
+table.data td:not(:first-child) {
+  white-space: nowrap;
+}
+table.data tbody tr:last-child td { border-bottom: 0; }
+table.data tbody tr:hover { background: var(--secondary); }
+table.data .num { font-variant-numeric: tabular-nums; }
+table.data .muted-cell { color: var(--muted-foreground); }
+
+/* ---------- 空态 ---------- */
+.empty {
+  padding: 56px var(--space-6);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.empty-icon {
+  width: 56px; height: 56px;
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted-foreground);
+  margin-bottom: var(--space-4);
+}
+.empty-title { font-size: 14px; font-weight: 500; margin: 0 0 var(--space-1); white-space: nowrap; }
+.empty-desc { font-size: 12px; color: var(--muted-foreground); margin: 0 0 var(--space-5); line-height: 18px; }
+
+/* ---------- 骨架屏 ---------- */
+.skeleton {
+  background: linear-gradient(90deg, var(--muted) 25%, var(--border-subtle) 37%, var(--muted) 63%);
+  background-size: 400% 100%;
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
+
+/* ---------- 备注块 ---------- */
+.note {
+  border-left: 3px solid var(--color-info);
+  background: var(--color-info-bg);
+  padding: var(--space-3) var(--space-4);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  line-height: 20px;
+  margin: var(--space-4) 0;
+}
+.note-warn { border-left-color: var(--color-warning); background: var(--color-warning-bg); }
+.note-ok { border-left-color: var(--color-success); background: var(--color-success-bg); }
+
+.meta-line {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin-top: var(--space-2);
+  line-height: 18px;
+}
+
+.pill {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+/* ---------- 折行对比演示 ---------- */
+.wrap-demo-bad,
+.wrap-demo-good {
+  display: flex; flex-wrap: wrap; gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--secondary);
+  border: 1px solid var(--border);
+}
+/* 故意模拟「未受约束」时的折行效果 */
+.wrap-demo-bad .badge { white-space: normal; max-width: 52px; }
+/* 正确示范 —— 保持不折行 */
+.wrap-demo-good .badge { white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .toc { position: static; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+  .main { padding: var(--space-5); }
+  .grid-2, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<p data-aigc-mark="1" style="margin:0 0 8px;font-size:10px;line-height:1.3;color:#6b6560;font-weight:400;">AI生成</p>
+
+<div class="layout">
+
+  <!-- ============ 目录 ============ -->
+  <nav class="toc">
+    <div class="toc-title">太平后台</div>
+    <p class="toc-sub">设计规范 · Ink Monochrome</p>
+    <a href="#foundation">01 · 设计立场</a>
+    <a href="#color">02 · 色彩</a>
+    <a href="#type">03 · 排版</a>
+    <a href="#space">04 · 间距</a>
+    <a href="#shape">05 · 圆角与阴影</a>
+    <a href="#component">06 · 组件</a>
+    <a href="#pattern">07 · 模式</a>
+    <a href="#a11y">08 · 无障碍基线</a>
+  </nav>
+
+  <main class="main">
+
+    <h1>太平后台设计规范</h1>
+    <p class="page-desc">
+      本页是《B 端设计优化方案》§5 的可视化呈现。所有取值即目标规范，可直接对照实施。
+      设计基准来自行业规范调研（Ant Design / Carbon / NN/g）的独立推导，非继承自现有代码。
+    </p>
+
+    <!-- ============ 01 设计立场 ============ -->
+    <section id="foundation">
+      <h2>01 · 设计立场</h2>
+      <p class="sec-desc">
+        这个产品的视觉辨识度来自「墨色单色的克制感」与「排版的秩序感」，而非色彩堆叠。
+      </p>
+
+      <div class="grid grid-2">
+        <div class="card"><div class="card-body">
+          <h3 style="margin-top:0">三个设计承诺</h3>
+          <p style="font-size:13px;line-height:20px;margin:0">
+            <strong>克制用色</strong> —— 中性色承担 95% 表达，功能色只在语义必要时出现。<br>
+            <strong>边框优先</strong> —— 用 1px 边框划分层次，阴影只留给浮层。<br>
+            <strong>秩序先于装饰</strong> —— 间距、字号、圆角全部取自 token，无任意值。
+          </p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <h3 style="margin-top:0">明确不做</h3>
+          <p style="font-size:13px;line-height:20px;margin:0">
+            紫蓝渐变主视觉 · 等权重多彩堆叠 · 装饰性大圆角 · 静态卡片加阴影 ·
+            居中一切 · 纯装饰性 emoji
+          </p>
+          <p class="meta-line">
+            依据：企业后台对色彩持克制态度（Ant Design）；反 AI-slop 清单（modern-ui-design-audit）。
+          </p>
+        </div></div>
+      </div>
+    </section>
+
+    <!-- ============ 02 色彩 ============ -->
+    <section id="color">
+      <h2>02 · 色彩</h2>
+      <p class="sec-desc">
+        中性色以透明度理念构建，天然适配明暗背景。功能色固定 5 个语义位，不做过度定制。
+      </p>
+
+      <h3>中性色 · Neutral</h3>
+      <div class="grid grid-5">
+        <div class="swatch">
+          <div class="swatch-color" style="background:#f7f7f7"></div>
+          <div class="swatch-meta">
+            <div class="swatch-name">页面背景</div>
+            <div class="swatch-hex">--background · #f7f7f7</div>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:#ffffff"></div>
+          <div class="swatch-meta">
+            <div class="swatch-name">容器表面</div>
+            <div class="swatch-hex">--card · #ffffff</div>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:#2e2e2e"></div>
+          <div class="swatch-meta">
+            <div class="swatch-name">主文本 / 主色</div>
+            <div class="swatch-hex">--foreground · #2e2e2e</div>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:#777777"></div>
+          <div class="swatch-meta">
+            <div class="swatch-name">次文本</div>
+            <div class="swatch-hex">#777777 · 仅辅助</div>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:#e8e8e8"></div>
+          <div class="swatch-meta">
+            <div class="swatch-name">边框</div>
+            <div class="swatch-hex">--border · #e8e8e8</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>对比度红线</strong>：主文本 <code>#2e2e2e</code> 在卡片上为 11.6:1（AAA）。
+        次文本 <code>#777777</code> 在纯白上为 4.6:1（AA），<strong>仅用于辅助说明，不得用作正文</strong>。
+      </div>
+
+      <h3>功能色 · Semantic（5 语义位）</h3>
+      <div class="grid grid-5">
+        <div class="swatch swatch-fn">
+          <div class="swatch-color" style="background:var(--color-success-bg);color:var(--color-success);border-bottom:1px solid var(--border)">成功</div>
+          <div class="swatch-meta">
+            <div class="swatch-hex" style="color:var(--color-success)">#3f7d3a</div>
+            <div class="swatch-use">已发布 / 已通过 / 完成</div>
+          </div>
+        </div>
+        <div class="swatch swatch-fn">
+          <div class="swatch-color" style="background:var(--color-warning-bg);color:var(--color-warning);border-bottom:1px solid var(--border)">警告</div>
+          <div class="swatch-meta">
+            <div class="swatch-hex" style="color:var(--color-warning)">#8f6b16</div>
+            <div class="swatch-use">草稿 / 待处理 / 注意</div>
+          </div>
+        </div>
+        <div class="swatch swatch-fn">
+          <div class="swatch-color" style="background:var(--color-error-bg);color:var(--color-error);border-bottom:1px solid var(--border)">错误</div>
+          <div class="swatch-meta">
+            <div class="swatch-hex" style="color:var(--color-error)">#b83a3a</div>
+            <div class="swatch-use">失败 / 删除 / 已驳回</div>
+          </div>
+        </div>
+        <div class="swatch swatch-fn">
+          <div class="swatch-color" style="background:var(--color-info-bg);color:var(--color-info);border-bottom:1px solid var(--border)">信息</div>
+          <div class="swatch-meta">
+            <div class="swatch-hex" style="color:var(--color-info)">#2c6599</div>
+            <div class="swatch-use">处理中 / 提示 / 链接</div>
+          </div>
+        </div>
+        <div class="swatch swatch-fn">
+          <div class="swatch-color" style="background:var(--muted);color:var(--muted-foreground);border-bottom:1px solid var(--border)">中性</div>
+          <div class="swatch-meta">
+            <div class="swatch-hex">--muted-foreground</div>
+            <div class="swatch-use">已归档 / 停用</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note note-warn">
+        <strong>本次修复的关键点</strong>：现有代码引用了未定义的 <code>--state-error</code> 等变量（7 处），
+        导致状态色静默失效。新规范将 <code>--state-*</code> 作为别名指向 <code>--color-*</code>，
+        使既有引用立即生效，无需改动业务代码。
+      </div>
+    </section>
+
+    <!-- ============ 03 排版 ============ -->
+    <section id="type">
+      <h2>03 · 排版</h2>
+      <p class="sec-desc">
+        基准 14px / 22px。字阶收敛为 5 级 —— 调研建议「体系内控制在 3–5 种，保持克制」。
+      </p>
+
+      <div class="card"><div class="card-body">
+        <div class="type-row">
+          <div class="type-label">display</div>
+          <div class="type-sample" style="font-size:20px;line-height:28px;font-weight:600">页面主标题</div>
+          <div class="type-meta">20px / 28px · 600</div>
+        </div>
+        <div class="type-row">
+          <div class="type-label">title</div>
+          <div class="type-sample" style="font-size:16px;line-height:24px;font-weight:600">区块与面板标题</div>
+          <div class="type-meta">16px / 24px · 600</div>
+        </div>
+        <div class="type-row">
+          <div class="type-label">body · 基准</div>
+          <div class="type-sample" style="font-size:14px;line-height:22px">正文、表格与表单的默认字号</div>
+          <div class="type-meta">14px / 22px · 400</div>
+        </div>
+        <div class="type-row">
+          <div class="type-label">label</div>
+          <div class="type-sample" style="font-size:13px;line-height:20px;font-weight:500">表单标签与按钮文字</div>
+          <div class="type-meta">13px / 20px · 500</div>
+        </div>
+        <div class="type-row">
+          <div class="type-label">caption</div>
+          <div class="type-sample" style="font-size:12px;line-height:18px;color:var(--muted-foreground)">辅助说明、时间戳、徽章文字</div>
+          <div class="type-meta">12px / 18px · 400</div>
+        </div>
+      </div></div>
+
+      <div class="grid grid-3" style="margin-top:var(--space-4)">
+        <div class="card"><div class="card-body">
+          <div class="field-label">字重仅 3 档</div>
+          <p class="meta-line" style="margin-top:var(--space-2)">
+            <span style="font-weight:400">400 正文</span> ·
+            <span style="font-weight:500">500 标签</span> ·
+            <span style="font-weight:600">600 标题</span><br>
+            不引入 700。
+          </p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <div class="field-label">数字等宽</div>
+          <p class="meta-line" style="margin-top:var(--space-2)">
+            表格数值与统计启用 <code>tabular-nums</code>，保证纵向对齐。
+          </p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <div class="field-label">明确废弃</div>
+          <p class="meta-line" style="margin-top:var(--space-2)">
+            <span class="pill">10px</span> <span class="pill">15px</span> 均为越级值，
+            应回归 caption(12) 与 body(14)。
+          </p>
+        </div></div>
+      </div>
+
+      <h3>文本折行规则<span style="font-weight:400;color:var(--muted-foreground);font-size:12px;margin-left:8px">除长文本段落外，界面元素一律不折行</span></h3>
+      <div class="grid grid-2">
+        <div class="card"><div class="card-body">
+          <div class="field-label" style="color:var(--color-error)">错误 —— 功能性文本折行</div>
+          <div class="wrap-demo-bad">
+            <span class="badge badge-success"><span class="badge-dot"></span>已发布</span>
+            <span class="badge badge-warning"><span class="badge-dot"></span>草稿</span>
+            <span class="badge badge-error"><span class="badge-dot"></span>已驳回</span>
+          </div>
+          <p class="meta-line" style="margin-top:var(--space-3)">
+            「已发布」被拆成两行，信息完整性被破坏。
+          </p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <div class="field-label" style="color:var(--color-success)">正确 —— 不折行</div>
+          <div class="wrap-demo-good">
+            <span class="badge badge-success"><span class="badge-dot"></span>已发布</span>
+            <span class="badge badge-warning"><span class="badge-dot"></span>草稿</span>
+            <span class="badge badge-error"><span class="badge-dot"></span>已驳回</span>
+          </div>
+          <p class="meta-line" style="margin-top:var(--space-3)">
+            徽章保持完整；空间不足时由容器适配或截断，而非折行。
+          </p>
+        </div></div>
+      </div>
+
+      <div class="grid grid-2" style="margin-top:var(--space-4)">
+        <div class="card"><div class="card-body">
+          <div class="field-label">禁止折行</div>
+          <table class="data" style="font-size:13px">
+            <tbody>
+              <tr><td>功能性短文本</td><td class="muted-cell">按钮 / 徽章 / 标签 / 状态值</td></tr>
+              <tr><td>结构性文本</td><td class="muted-cell">表头 / 导航项 / 标签页 / 表单标签</td></tr>
+              <tr><td>数据类文本</td><td class="muted-cell">时间 / 操作项 / 分页 / 数值</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <div class="field-label">允许折行</div>
+          <table class="data" style="font-size:13px">
+            <tbody>
+              <tr><td>正文内容</td><td class="muted-cell">文章正文、评论内容</td></tr>
+              <tr><td>说明文本</td><td class="muted-cell">描述 / 帮助说明 / 字段提示</td></tr>
+              <tr><td>反馈信息</td><td class="muted-cell">错误信息 / 空态说明</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <div class="note note-warn">
+        <strong>为什么这条重要</strong>：此类缺陷在桌面宽屏下通常不显现，
+        仅在窄容器、固定宽列或长文案压缩时暴露。走查时<strong>必须在窄视口下逐项检查</strong>，
+        不能只看宽屏效果。这是 AI 生成界面时的典型盲区。
+      </div>
+    </section>
+
+    <!-- ============ 04 间距 ============ -->
+    <section id="space">
+      <h2>04 · 间距</h2>
+      <p class="sec-desc">
+        基础单位 8px，密集场景可用 4px 半步。禁止任意值 —— 这是消除「同类容器多种内边距」的根本手段。
+      </p>
+
+      <div class="card"><div class="card-body">
+        <div class="space-row">
+          <div class="space-label">space-1 · 4px</div>
+          <div class="space-bar" style="width:4px"></div>
+          <span class="meta-line" style="margin:0">图标与文字</span>
+        </div>
+        <div class="space-row">
+          <div class="space-label">space-2 · 8px</div>
+          <div class="space-bar" style="width:8px"></div>
+          <span class="meta-line" style="margin:0">标签与输入框</span>
+        </div>
+        <div class="space-row">
+          <div class="space-label">space-3 · 12px</div>
+          <div class="space-bar" style="width:12px"></div>
+          <span class="meta-line" style="margin:0">同组控件</span>
+        </div>
+        <div class="space-row">
+          <div class="space-label">space-4 · 16px</div>
+          <div class="space-bar" style="width:16px"></div>
+          <span class="meta-line" style="margin:0">表单字段之间</span>
+        </div>
+        <div class="space-row">
+          <div class="space-label">space-5 · 20px</div>
+          <div class="space-bar" style="width:20px;background:var(--color-info)"></div>
+          <span class="meta-line" style="margin:0">表格单元格（水平）</span>
+        </div>
+        <div class="space-row">
+          <div class="space-label">space-6 · 24px</div>
+          <div class="space-bar" style="width:24px;background:var(--color-info)"></div>
+          <span class="meta-line" style="margin:0">卡片内边距 / 区块间距</span>
+        </div>
+        <div class="space-row">
+          <div class="space-label">space-8 · 32px</div>
+          <div class="space-bar" style="width:32px;background:var(--color-info)"></div>
+          <span class="meta-line" style="margin:0">页面级区块分隔</span>
+        </div>
+      </div></div>
+
+      <div class="note">
+        <strong>邻近性三档</strong>：8px 同一信息单元内部 → 16px 相关字段之间 → 24px 不同区块之间。
+        用间距的倍差划分层级，比加分隔线更轻。
+      </div>
+    </section>
+
+    <!-- ============ 05 圆角与阴影 ============ -->
+    <section id="shape">
+      <h2>05 · 圆角与阴影</h2>
+      <p class="sec-desc">圆角三档，克制可感知；阴影只服务于浮层。</p>
+
+      <h3>圆角 · Radius</h3>
+      <div class="grid grid-4">
+        <div class="radius-demo" style="border-radius:3px">3px<br>sm</div>
+        <div class="radius-demo" style="border-radius:5px">5px<br>md</div>
+        <div class="radius-demo" style="border-radius:8px">8px<br>lg</div>
+        <div class="radius-demo" style="border-radius:9999px">full<br>药丸</div>
+      </div>
+      <p class="meta-line">用途：sm 徽章/小按钮/输入框 · md 卡片/面板/按钮 · lg 抽屉/弹窗 · full 药丸标签/头像/开关</p>
+
+      <h3>阴影 · Shadow</h3>
+      <div class="grid grid-2">
+        <div class="shadow-demo" style="border:1px solid var(--border)">
+          静态卡片 —— 仅 1px 边框，无阴影
+        </div>
+        <div class="shadow-demo" style="box-shadow:var(--shadow-floating)">
+          浮层 —— 抽屉 / 下拉 / 弹窗 / Toast
+        </div>
+      </div>
+      <p class="meta-line">
+        <code>--shadow-floating: 0 8px 24px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.06)</code>
+      </p>
+    </section>
+
+    <!-- ============ 06 组件 ============ -->
+    <section id="component">
+      <h2>06 · 组件</h2>
+      <p class="sec-desc">组件变体与状态需完整且一致 —— 缺失变体会导致页面各自造轮子。</p>
+
+      <h3>按钮 · Button</h3>
+      <div class="card"><div class="card-body">
+        <div class="btn-row">
+          <button class="btn btn-primary">主要操作</button>
+          <button class="btn btn-secondary">次要操作</button>
+          <button class="btn btn-ghost">幽灵按钮</button>
+          <button class="btn btn-danger">删除</button>
+          <button class="btn btn-link">链接按钮</button>
+        </div>
+
+        <h3>尺寸</h3>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm">小 · 28px</button>
+          <button class="btn btn-primary">中 · 34px</button>
+          <button class="btn btn-primary btn-lg">大 · 40px</button>
+          <button class="btn btn-secondary btn-icon" aria-label="更多">⋯</button>
+        </div>
+
+        <h3>状态</h3>
+        <div class="btn-row">
+          <button class="btn btn-primary">默认</button>
+          <button class="btn btn-primary" disabled style="opacity:.4;cursor:not-allowed">禁用</button>
+          <button class="btn btn-primary" style="opacity:.88">悬停（示意）</button>
+        </div>
+
+        <div class="note note-warn" style="margin-bottom:0">
+          <strong>规则</strong>：同一按钮组内主按钮最多 1 个 · 按重要性排序，次要操作靠右 ·
+          图标按钮必须带 <code>aria-label</code> · 文案用动词 · 破坏性操作用 danger 并配二次确认。
+        </div>
+      </div></div>
+
+      <h3>徽章 · Badge</h3>
+      <div class="card"><div class="card-body">
+        <div class="btn-row">
+          <span class="badge badge-success"><span class="badge-dot"></span>已发布</span>
+          <span class="badge badge-warning"><span class="badge-dot"></span>草稿</span>
+          <span class="badge badge-error"><span class="badge-dot"></span>已驳回</span>
+          <span class="badge badge-info"><span class="badge-dot"></span>处理中</span>
+          <span class="badge badge-muted">已归档</span>
+        </div>
+        <p class="meta-line">
+          徽章必须带文字，不可只用颜色点 —— 满足「状态不单靠颜色」的无障碍要求。
+        </p>
+      </div></div>
+
+      <h3>输入 · Input</h3>
+      <div class="card"><div class="card-body">
+        <div class="grid grid-2">
+          <div class="field">
+            <label class="field-label" for="i1">文章标题</label>
+            <input id="i1" class="input" placeholder="输入标题">
+            <span class="field-desc">默认态：边框分隔，无阴影</span>
+          </div>
+          <div class="field">
+            <label class="field-label" for="i2">Slug（已禁用）</label>
+            <input id="i2" class="input" value="hello-world" disabled>
+            <span class="field-desc">禁用态：弱化底色与文字</span>
+          </div>
+        </div>
+        <p class="meta-line" style="margin-top:var(--space-4)">
+          所有输入必须配 <code>&lt;label&gt;</code>，不得用 placeholder 代替标签。
+        </p>
+      </div></div>
+
+      <h3>表格 · Table</h3>
+      <div class="card" style="overflow:hidden"><div style="padding:var(--space-5) var(--space-5) 0">
+        <div style="font-size:16px;font-weight:600;margin-bottom:var(--space-1)">文章列表</div>
+        <div style="font-size:12px;color:var(--muted-foreground)">共 128 篇</div>
+      </div>
+      <div style="padding:var(--space-4) 0 var(--space-2)">
+        <table class="data">
+          <thead>
+            <tr>
+              <th>标题</th>
+              <th style="width:110px">状态</th>
+              <th style="width:140px">更新时间</th>
+              <th style="width:90px;text-align:right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>写在又一年春天</td>
+              <td><span class="badge badge-success"><span class="badge-dot"></span>已发布</span></td>
+              <td class="muted-cell num">2026-01-12</td>
+              <td style="text-align:right"><button class="btn btn-ghost btn-sm">编辑</button></td>
+            </tr>
+            <tr>
+              <td>关于拙素主题的构想</td>
+              <td><span class="badge badge-warning"><span class="badge-dot"></span>草稿</span></td>
+              <td class="muted-cell num">2026-01-09</td>
+              <td style="text-align:right"><button class="btn btn-ghost btn-sm">编辑</button></td>
+            </tr>
+            <tr>
+              <td>读书笔记 · 第一卷</td>
+              <td><span class="badge badge-error"><span class="badge-dot"></span>已驳回</span></td>
+              <td class="muted-cell num">—</td>
+              <td style="text-align:right"><button class="btn btn-ghost btn-sm">编辑</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div></div>
+      <p class="meta-line">
+        表头左对齐且加粗 · 行悬停反馈 · 空值用 <code>—</code> · 状态/时间/操作列不换行 · 数字启用等宽。
+      </p>
+    </section>
+
+    <!-- ============ 07 模式 ============ -->
+    <section id="pattern">
+      <h2>07 · 模式</h2>
+      <p class="sec-desc">模式是组件的组合范式。以下为本项目必须统一的三类。</p>
+
+      <h3>空态 · Empty（三段式）</h3>
+      <div class="card">
+        <div class="empty">
+          <div class="empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 7h18M5 7l1.5 12h11L19 7M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </div>
+          <p class="empty-title">还没有文章</p>
+          <p class="empty-desc">文章发布后会出现在站点首页和归档中</p>
+          <button class="btn btn-primary">写第一篇文章</button>
+        </div>
+      </div>
+      <p class="meta-line">
+        <strong>状态提示</strong> 让用户理解为什么空 → <strong>帮助引导</strong> 解释价值 →
+        <strong>建议动作</strong> 给出下一步。
+      </p>
+
+      <h3>加载态 · Loading（骨架屏优先）</h3>
+      <div class="card"><div class="card-body">
+        <div style="display:flex;gap:var(--space-4);align-items:center">
+          <div class="skeleton" style="width:40px;height:40px;border-radius:var(--radius-md)"></div>
+          <div style="flex:1">
+            <div class="skeleton" style="height:14px;width:45%;margin-bottom:var(--space-2)"></div>
+            <div class="skeleton" style="height:12px;width:70%"></div>
+          </div>
+        </div>
+        <div style="margin-top:var(--space-5)">
+          <div class="skeleton" style="height:12px;width:100%;margin-bottom:var(--space-2)"></div>
+          <div class="skeleton" style="height:12px;width:88%"></div>
+        </div>
+      </div></div>
+      <p class="meta-line">
+        内容密集页面（列表/卡片/详情）用骨架屏保持布局占位；按钮提交用按钮内 spinner；
+        轻量局部刷新用内联 spinner。<strong>禁止</strong>各页写一句「加载中…」文本。
+      </p>
+
+      <h3>反馈 · Feedback（按场景匹配）</h3>
+      <div class="card"><div class="card-body">
+        <table class="data">
+          <thead>
+            <tr><th style="width:130px">场景</th><th>反馈方式</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>成功 · 留在原页</td><td class="muted-cell">Toast（轻量，不打断）</td></tr>
+            <tr><td>成功 · 跳转</td><td class="muted-cell">行内提示 + 说明</td></tr>
+            <tr><td>失败 · 需决策</td><td class="muted-cell">对话框（说明问题 + 给出解法）</td></tr>
+            <tr><td>输入不合规</td><td class="muted-cell">表单字段行内错误</td></tr>
+            <tr><td>破坏性操作</td><td class="muted-cell">二次确认对话框</td></tr>
+          </tbody>
+        </table>
+      </div></div>
+    </section>
+
+    <!-- ============ 08 无障碍 ============ -->
+    <section id="a11y">
+      <h2>08 · 无障碍基线</h2>
+      <p class="sec-desc">这是底线要求，不是加分项。当前实现的主要缺口集中在焦点管理与键盘可达。</p>
+
+      <div class="grid grid-2">
+        <div class="card"><div class="card-body">
+          <h3 style="margin-top:0">必须满足</h3>
+          <table class="data" style="font-size:13px">
+            <tbody>
+              <tr><td>正文对比度</td><td class="num" style="text-align:right">≥ 4.5:1</td></tr>
+              <tr><td>UI 元素 / 大文本</td><td class="num" style="text-align:right">≥ 3:1</td></tr>
+              <tr><td>焦点环</td><td class="num" style="text-align:right">2px + offset 2px</td></tr>
+              <tr><td>触控目标</td><td class="num" style="text-align:right">≥ 36px / 移动 44px</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <h3 style="margin-top:0">焦点样式示意</h3>
+          <div class="btn-row" style="margin-bottom:var(--space-4)">
+            <button class="btn btn-secondary" style="outline:2px solid var(--ring);outline-offset:2px">聚焦状态</button>
+            <button class="btn btn-secondary">普通状态</button>
+          </div>
+          <p class="meta-line" style="margin:0">
+            <code>:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px }</code><br>
+            所有可交互元素适用；禁用 <code>outline:none</code> 而不给替代。
+          </p>
+        </div></div>
+      </div>
+
+      <div class="note note-ok">
+        <strong>键盘走查要点</strong>：列表项应为 <code>&lt;button&gt;</code> 而非 div+onClick ·
+        下拉菜单支持 Esc 关闭与方向键 · 抽屉须有焦点陷阱与焦点归还 ·
+        状态不可单靠颜色（配文字或图形）。
+      </div>
+    </section>
+
+    <p class="meta-line" style="margin-top:48px;padding-top:var(--space-5);border-top:1px solid var(--border)">
+      太平后台设计规范 · 配套《B 端设计优化方案》v1.0 ·
+      设计基准来自 Ant Design / IBM Carbon / NN/g 的独立推导
+    </p>
+
+  </main>
+</div>
+</body>
+</html>
