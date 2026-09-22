@@ -79,8 +79,8 @@ importers:
         specifier: ^0.469.0
         version: 0.469.0(react@19.3.0)
       overtypeplus:
-        specifier: github:icecome/overtype#npm-release
-        version: git+https://git@github.com:icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab
+        specifier: git+https://github.com/icecome/overtype.git#npm-release
+        version: git+https://github.com/icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab
       react:
         specifier: ^19.0.0
         version: 19.3.0
@@ -1847,8 +1847,8 @@ packages:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
 
-  overtypeplus@git+https://git@github.com:icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab:
-    resolution: {commit: 631a248c5583616f4dc8241c78f5cd74c17349ab, repo: git@github.com:icecome/overtype.git, type: git}
+  overtypeplus@git+https://github.com/icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab:
+    resolution: {commit: 631a248c5583616f4dc8241c78f5cd74c17349ab, repo: https://github.com/icecome/overtype.git, type: git}
     version: 2.4.0
 
   p-limit@3.1.0:
@@ -3851,7 +3851,7 @@ snapshots:
       type-check: 0.4.0
       word-wrap: 1.2.5
 
-  overtypeplus@git+https://git@github.com:icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab:
+  overtypeplus@git+https://github.com/icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab:
     dependencies:
       '@floating-ui/dom': 1.8.0
       markdown-actions: 1.1.2
