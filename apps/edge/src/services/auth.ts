@@ -1,6 +1,8 @@
 import type { D1Database } from '@cloudflare/workers-types'
 import type { Env } from '../env'
-import { hmacSign, hmacVerify } from '../lib/crypto'
+import type { Admin } from '@taiping/content-model/auth'
+import { hashPassword, hmacSign, hmacVerify, verifyPassword } from '../lib/crypto'
+import { newId } from '../lib/cache'
 import { nowIso } from '@taiping/shared-utils'
 
 const COOKIE_NAME = 'tp_session'
@@ -8,6 +10,52 @@ const TRUSTED_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const DEFAULT_TTL_MS = 6 * 60 * 60 * 1000
 
 export { COOKIE_NAME }
+
+interface AdminRow {
+  id: string
+  username: string
+  password_hash: string
+  created_at: string
+  updated_at: string
+}
+
+function rowToAdmin(row: AdminRow): Admin {
+  return {
+    id: row.id,
+    username: row.username,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+export async function getAdmin(db: D1Database): Promise<Admin | null> {
+  const row = await db
+    .prepare('SELECT * FROM admins ORDER BY created_at ASC LIMIT 1')
+    .first<AdminRow>()
+  return row ? rowToAdmin(row) : null
+}
+
+/**
+ * 首次播种：admins 表为空时，用环境变量创建唯一管理员。
+ * 播种后环境变量不再参与登录校验，可自行清除。
+ */
+export async function seedAdminIfEmpty(db: D1Database, env: Env): Promise<Admin | null> {
+  const existing = await getAdmin(db)
+  if (existing) return existing
+  if (!env.ADMIN_USERNAME || !env.ADMIN_PASSWORD) return null
+
+  const now = nowIso()
+  const id = newId('adm')
+  const passwordHash = await hashPassword(env.ADMIN_PASSWORD)
+  await db
+    .prepare(
+      `INSERT INTO admins (id, username, password_hash, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .bind(id, env.ADMIN_USERNAME, passwordHash, now, now)
+    .run()
+  return { id, username: env.ADMIN_USERNAME, createdAt: now, updatedAt: now }
+}
 
 export async function login(
   db: D1Database,
@@ -18,13 +66,28 @@ export async function login(
   trusted: boolean,
   isSecureRequest: boolean,
 ): Promise<{ sessionId: string; expiresAt: string; cookie: string }> {
-  const [userOk, passOk] = await Promise.all([
-    verifyAdminUsername(env, username),
-    verifyAdminPassword(env, password),
-  ])
-  if (!userOk || !passOk) {
+  // 表为空时先播种，使首次部署即可用环境变量登录
+  const admin = (await getAdmin(db)) ?? (await seedAdminIfEmpty(db, env))
+
+  let ok = false
+  if (admin) {
+    const row = await db
+      .prepare('SELECT password_hash, username FROM admins WHERE id = ?')
+      .bind(admin.id)
+      .first<{ password_hash: string; username: string }>()
+    if (row) {
+      // 用户名恒定时间比较 + 口令走 PBKDF2 校验，避免用户名枚举的时序差异
+      const userOk = constantTimeEquals(username, row.username)
+      const passOk = await verifyPassword(password, row.password_hash)
+      ok = userOk && passOk
+    }
+  }
+  if (!ok) {
+    // 失败路径也执行一次哈希，拉平响应耗时的差异
+    await verifyPassword(password, 'pbkdf2$600000$00$00')
     throw Object.assign(new Error('invalid credentials'), { code: 'AUTH_INVALID' })
   }
+
   const sessionId = crypto.randomUUID().replace(/-/g, '')
   const now = nowIso()
   const ttl = trusted ? TRUSTED_TTL_MS : DEFAULT_TTL_MS
@@ -44,6 +107,36 @@ export async function login(
   const secure = isSecureRequest ? '; Secure' : ''
   const cookie = `${COOKIE_NAME}=${payload}.${sig}; Path=/; HttpOnly${secure}; SameSite=Lax; Max-Age=${Math.floor(ttl / 1000)}`
   return { sessionId, expiresAt, cookie }
+}
+
+/**
+ * 修改当前管理员口令。校验旧口令后写入新哈希，并清空既有会话
+ * （防止旧会话在被盗用的情形下继续有效）。
+ */
+export async function changeAdminPassword(
+  db: D1Database,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const admin = await getAdmin(db)
+  if (!admin) {
+    throw Object.assign(new Error('admin not found'), { code: 'NOT_FOUND' })
+  }
+  const row = await db
+    .prepare('SELECT password_hash FROM admins WHERE id = ?')
+    .bind(admin.id)
+    .first<{ password_hash: string }>()
+  const currentOk = row ? await verifyPassword(currentPassword, row.password_hash) : false
+  if (!currentOk) {
+    throw Object.assign(new Error('invalid current password'), { code: 'AUTH_INVALID' })
+  }
+  const nextHash = await hashPassword(newPassword)
+  await db.batch([
+    db
+      .prepare('UPDATE admins SET password_hash = ?, updated_at = ? WHERE id = ?')
+      .bind(nextHash, nowIso(), admin.id),
+    db.prepare('DELETE FROM sessions'),
+  ])
 }
 
 export async function logout(db: D1Database, cookieHeader: string | undefined): Promise<string> {
@@ -102,14 +195,6 @@ function constantTimeEquals(a: string, b: string): boolean {
     diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0)
   }
   return diff === 0
-}
-
-export async function verifyAdminUsername(env: Env, username: string): Promise<boolean> {
-  return constantTimeEquals(username, env.ADMIN_USERNAME)
-}
-
-export async function verifyAdminPassword(env: Env, password: string): Promise<boolean> {
-  return constantTimeEquals(password, env.ADMIN_PASSWORD)
 }
 
 export function unlockCookieName(slug: string): string {

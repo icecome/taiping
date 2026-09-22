@@ -23,6 +23,11 @@ export const api = {
     login: (username: string, password: string, trusted = false) =>
       http.post<{ expiresAt: string }>('/api/admin/auth/login', { username, password, trusted }),
     logout: () => http.post<{ ok: true }>('/api/admin/auth/logout'),
+    changePassword: (input: {
+      currentPassword: string
+      newPassword: string
+      confirmPassword: string
+    }) => http.post<{ changed: true }>('/api/admin/auth/password', input),
   },
   overview: () => http.get<Overview>('/api/admin/overview'),
   posts: {

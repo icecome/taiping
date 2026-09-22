@@ -47,7 +47,8 @@ pnpm -F @taiping/studio dev
 - 管理接口挂载 `/api/admin/*`，鉴权中间件按前缀统一处理
 - 环境变量在 `apps/edge/src/env.ts` 集中声明
 - KV / R2 为可选绑定，首期仅 D1 必需
-- 鉴权：账号口令 + D1 会话 Cookie
+- 鉴权：账号口令存于 D1 `admins` 表（PBKDF2 哈希）+ 签名会话 Cookie；
+  `ADMIN_USERNAME`/`ADMIN_PASSWORD` 仅用于首次播种，播种后可在后台「设置 → 账号」改口令
 - 说说列表承载内容；留言表单组件统一；归档默认按年；媒体首期外链 URL
 
 ## 部署

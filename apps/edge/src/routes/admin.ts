@@ -5,12 +5,12 @@ import { commentListQuerySchema, commentModerateSchema } from '@taiping/content-
 import { momentInputSchema, momentListQuerySchema } from '@taiping/content-model/moment'
 import { siteSettingsSchema } from '@taiping/content-model/settings'
 import { termInputSchema, termUpdateSchema } from '@taiping/content-model/term'
-import { loginSchema } from '@taiping/content-model/auth'
+import { loginSchema, changePasswordSchema } from '@taiping/content-model/auth'
 import { renderMarkdownSafe } from '@taiping/renderer/markdown'
 import type { AppEnv } from '../lib/http'
 import { jsonFail, jsonOk, zodDetails } from '../lib/http'
 import { requireAuth } from '../middleware/auth'
-import { COOKIE_NAME, login, logout } from '../services/auth'
+import { COOKIE_NAME, login, logout, getAdmin, changeAdminPassword } from '../services/auth'
 import {
   countPosts,
   createPost,
@@ -83,7 +83,34 @@ admin.post('/auth/logout', async (c) => {
   return jsonOk(c, { ok: true })
 })
 
-admin.get('/auth/me', (c) => jsonOk(c, { authenticated: true, cookieName: COOKIE_NAME }))
+admin.get('/auth/me', async (c) => {
+  const admin = await getAdmin(c.env.DB)
+  return jsonOk(c, {
+    authenticated: true,
+    cookieName: COOKIE_NAME,
+    username: admin?.username ?? null,
+  })
+})
+
+admin.post('/auth/password', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  const parsed = changePasswordSchema.safeParse(body)
+  if (!parsed.success) {
+    return jsonFail(c, 'VALIDATION_FAILED', '参数不合法', zodDetails(parsed.error))
+  }
+  try {
+    await changeAdminPassword(c.env.DB, parsed.data.currentPassword, parsed.data.newPassword)
+  } catch (err) {
+    const code = (err as { code?: string }).code
+    if (code === 'AUTH_INVALID') {
+      return jsonFail(c, 'AUTH_INVALID', '当前口令不正确')
+    }
+    throw err
+  }
+  // 所有会话已失效，清除当前 Cookie 促使重新登录
+  c.header('Set-Cookie', `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`)
+  return jsonOk(c, { changed: true })
+})
 
 // --- dashboard ---
 admin.get('/overview', async (c) => {

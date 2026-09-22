@@ -1,5 +1,8 @@
 # 复制为 .dev.vars（已 gitignore）后填写本地密钥
 SESSION_SECRET=please-change-me-to-a-long-random-string
+
+# 管理员账号：仅用于首次播种到 D1 的 admins 表。
+# 表非空后不再读取，改口令请到后台「设置 → 账号」。
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=change-me
 
@@ -12,4 +15,3 @@ MAIL_API_URL=
 MAIL_API_KEY=
 
 # 站点信息（标题/作者/描述/地址）不在此配置，统一在后台「设置」中管理。
-
