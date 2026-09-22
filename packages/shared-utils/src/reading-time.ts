@@ -1,3 +1,5 @@
+import { plainText } from './string'
+
 /**
  * 中文阅读时长分级（对齐拙素站点文案）。
  * 阈值按常见中文阅读速度估算，后续可对照现站校准。
@@ -13,11 +15,10 @@ const LEVELS: Array<{ maxMinutes: number; label: string }> = [
 
 export function countWords(text: string): number {
   if (!text) return 0
-  const cleaned = text
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`[^`]*`/g, ' ')
-    .replace(/https?:\/\/\S+/g, ' ')
-    .replace(/[#>*_\-~\[\]()!]/g, ' ')
+  // 先去掉行内代码与 URL，再走 plainText 统一剥标签/符号
+  const cleaned = plainText(
+    text.replace(/`[^`]*`/g, ' ').replace(/https?:\/\/\S+/g, ' '),
+  )
   const cjk = cleaned.match(/[一-鿿㐀-䶿]/g)?.length ?? 0
   const latin = cleaned.match(/[A-Za-z0-9]+/g)?.length ?? 0
   return cjk + latin

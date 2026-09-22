@@ -1,5 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types'
 import type { Env } from '../env'
+import { githubRequest as githubApiRequest } from '../lib/github'
 import { getMirrorSummary } from '../lib/mirror'
 
 /**
@@ -147,15 +148,11 @@ async function commitToGithub(
 
 async function githubRequest(env: Env, endpoint: string, body: Record<string, unknown>): Promise<void> {
   const [method, path] = endpoint.split(' ') as [string, string]
-  const res = await fetch(`https://api.github.com${path}`, {
+  const res = await githubApiRequest(env, path, {
     method,
-    headers: {
-      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'taiping-blog',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
+    body,
+    // DELETE 无 sha 时 GitHub 返回 422/404，调用方按需处理 404
+    timeoutMs: 20_000,
   })
   if (!res.ok && res.status !== 404) {
     const text = await res.text()

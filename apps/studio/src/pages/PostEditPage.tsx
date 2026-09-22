@@ -14,6 +14,7 @@ import { TagSelector, type TagOption } from '../components/ui/TagSelector'
 import { toast } from '../lib/toast'
 import { HttpError } from '../api/client'
 import { slugify } from '@taiping/shared-utils/slug'
+import { toIso, toDatetimeLocal } from '../lib/datetime'
 import { countWords } from '@taiping/shared-utils/reading-time'
 import { MediaPicker } from '../components/media/MediaPicker'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
@@ -507,18 +508,3 @@ export function PostEditPage({ contentType }: Props) {
   )
 }
 
-function toIso(value: unknown): string | undefined {
-  if (!value || typeof value !== 'string') return undefined
-  if (value.includes('T') && (value.endsWith('Z') || value.includes('+'))) return value
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString()
-}
-
-function toDatetimeLocal(value: string | undefined): string {
-  if (!value) return ''
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return ''
-  // 转换为 datetime-local 格式（YYYY-MM-DDTHH:mm）
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}

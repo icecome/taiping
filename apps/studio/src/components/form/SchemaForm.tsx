@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import type { Control, FieldPath, FieldValues } from 'react-hook-form'
 import { Controller } from 'react-hook-form'
 import type { FieldMeta } from '@taiping/content-model/post'
+import { toDatetimeLocal } from '../../lib/datetime'
 
 const OverTypeEditor = lazy(() => import('../editor/OverTypeEditor'))
 
@@ -93,7 +94,7 @@ function FieldRow<T extends FieldValues>({
 function formatInputValue(value: unknown, control: FieldMeta['control']): string {
   if (value === undefined || value === null) return ''
   if (control === 'datetime' && typeof value === 'string') {
-    return value.slice(0, 16)
+    return toDatetimeLocal(value)
   }
   return String(value)
 }

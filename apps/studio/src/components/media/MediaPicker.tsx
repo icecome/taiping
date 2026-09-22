@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Copy, Trash2, Upload, X } from 'lucide-react'
+import { Copy, Trash2, Upload } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { api } from '../../api/endpoints'
 import { getActiveMediaConfig } from '@taiping/content-model/settings'
 import { useToastStore } from '../../lib/toast'
 import { confirmDialog } from '../ui/ConfirmDialog'
+import { Modal } from '../ui/Modal'
 import {
   blobToBase64,
   compressImage,
@@ -139,21 +140,13 @@ export function MediaPicker({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-foreground/30 flex items-start justify-center p-6 overflow-auto">
-      <div className="w-full max-w-4xl border border-border bg-card rounded-sm shadow-none">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
-          <div>
-            <div className="text-sm font-medium text-foreground">图床</div>
-            <div className="text-xs text-muted-foreground">
-              GitHub 渠道 · 客户端 WebP 压缩 · 重命名模板
-            </div>
-          </div>
-          <button type="button" onClick={onClose} aria-label="关闭" className="text-muted-foreground">
-            <X size={18} />
-          </button>
+    <Modal open={open} title="图床" onClose={onClose} variant="center">
+      <div className="flex flex-col gap-3 -m-4">
+        <div className="px-4 pt-1 text-xs text-muted-foreground">
+          GitHub 渠道 · 客户端 WebP 压缩 · 重命名模板
         </div>
 
-        <div className="px-4 py-3 border-b border-border-subtle flex flex-wrap items-center gap-2 text-sm">
+        <div className="px-4 py-3 border-y border-border-subtle flex flex-wrap items-center gap-2 text-sm">
           <label className="btn-ghost cursor-pointer">
             <Upload size={14} className="mr-1" />
             上传图片
@@ -347,7 +340,7 @@ export function MediaPicker({
           </div>
         ) : null}
       </div>
-    </div>
+    </Modal>
   )
 }
 

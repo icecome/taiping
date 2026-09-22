@@ -46,10 +46,10 @@ export function Layout(meta: ThemeMeta, main: ReturnType<typeof html>) {
     ${SidebarNav(meta)}
   </div>
   ${SearchModal()}
-  <script src="/theme/scripts/main.js" defer></script>
   <script src="/theme/scripts/search.js" defer></script>
   <script src="/theme/scripts/theme-toggle.js" defer></script>
   <script src="/theme/scripts/overtype/overtype.min.js" defer></script>
+  <script src="/theme/scripts/comment-form.js" defer></script>
   <script src="/theme/scripts/guestbook.js" defer></script>
   <script src="/theme/scripts/moment.js" defer></script>
   <script src="/theme/scripts/code-toolbar.js" defer></script>

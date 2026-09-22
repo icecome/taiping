@@ -1,5 +1,6 @@
 import type { MediaStorageConfig, SiteSettings } from '@taiping/content-model/settings'
 import { getActiveMediaConfig } from '@taiping/content-model/settings'
+import { encodeGitHubPath, githubRequest } from '../lib/github'
 
 export interface ResolvedMediaSource {
   owner: string
@@ -85,25 +86,17 @@ export async function githubUploadImage(
     })
   }
   const filePath = source.pathPrefix ? `${source.pathPrefix}/${input.filename}` : input.filename
-  const url = `https://api.github.com/repos/${source.owner}/${source.repo}/contents/${filePath
-    .split('/')
-    .map(encodeURIComponent)
-    .join('/')}`
+  const apiPath = `/repos/${source.owner}/${source.repo}/contents/${encodeGitHubPath(filePath)}`
   const body: Record<string, unknown> = {
     message: input.message || `upload: ${filePath}`,
     content: input.base64Content,
     branch: source.branch,
   }
   if (input.sha) body.sha = input.sha
-  const res = await fetch(url, {
+  const res = await githubRequest(env, apiPath, {
     method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'taiping-blog',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
+    body,
+    timeoutMs: 30_000,
   })
   const json = (await res.json().catch(() => ({}))) as {
     content?: { sha?: string; path?: string }
@@ -132,16 +125,8 @@ export async function githubListMedia(env: { GITHUB_TOKEN?: string }, settings: 
       activeConfig: config ? { id: config.id, name: config.name } : null,
     }
   }
-  const url = `https://api.github.com/repos/${source.owner}/${source.repo}/git/trees/${encodeURIComponent(
-    source.branch,
-  )}?recursive=1`
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'taiping-blog',
-    },
-  })
+  const treePath = `/repos/${source.owner}/${source.repo}/git/trees/${encodeURIComponent(source.branch)}?recursive=1`
+  const res = await githubRequest(env, treePath, { timeoutMs: 20_000 })
   if (!res.ok) {
     throw Object.assign(new Error(`GitHub 列表失败 ${res.status}`), { code: 'INTERNAL' })
   }
@@ -182,23 +167,15 @@ export async function githubDeleteMedia(
   if (!source.configured) {
     throw Object.assign(new Error(source.missingHint || '图床未配置'), { code: 'VALIDATION_FAILED' })
   }
-  const url = `https://api.github.com/repos/${source.owner}/${source.repo}/contents/${path
-    .split('/')
-    .map(encodeURIComponent)
-    .join('/')}`
-  const res = await fetch(url, {
+  const delPath = `/repos/${source.owner}/${source.repo}/contents/${encodeGitHubPath(path)}`
+  const res = await githubRequest(env, delPath, {
     method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'taiping-blog',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+    body: {
       message: `delete: ${path}`,
       sha,
       branch: source.branch,
-    }),
+    },
+    timeoutMs: 20_000,
   })
   if (!res.ok && res.status !== 404) {
     const text = await res.text()
