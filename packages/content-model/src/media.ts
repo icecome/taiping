@@ -1,9 +1,10 @@
 import { z } from 'zod'
+import { isSafeResourceUrl } from './url'
 
 export const mediaSchema = z.object({
   id: z.string().min(1),
   storageKey: z.string().min(1),
-  url: z.string().min(1),
+  url: z.string().min(1).refine(isSafeResourceUrl, '仅支持站内路径或 http/https 资源'),
   filename: z.string().min(1),
   mime: z.string().min(1),
   size: z.number().int().nonnegative(),

@@ -33,7 +33,7 @@
           .map(
             (item) =>
               '<li><a href="' +
-              item.url +
+              escapeAttr(item.url) +
               '">' +
               escapeHtml(item.title) +
               '</a><div>' +
@@ -54,5 +54,9 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
+  }
+
+  function escapeAttr(text) {
+    return escapeHtml(text).replace(/'/g, '&#39;')
   }
 })()

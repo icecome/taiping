@@ -1,4 +1,5 @@
 import MarkdownIt from 'markdown-it'
+import anchor from 'markdown-it-anchor'
 import sanitizeHtml from 'sanitize-html'
 import { excerptOf } from '@taiping/shared-utils/string'
 import { readingTimeLabel } from '@taiping/shared-utils/reading-time'
@@ -8,6 +9,15 @@ const md = new MarkdownIt({
   linkify: true,
   typographer: true,
   breaks: true,
+}).use(anchor, {
+  permalink: false,
+  slugify: (s: string) =>
+    s
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\p{L}\p{N}-]/gu, '')
+      .replace(/^-+|-+$/g, '') || 'section',
 })
 
 export function renderMarkdown(source: string): string {
@@ -35,6 +45,12 @@ export function sanitizeRenderedHtml(html: string): string {
       span: ['class'],
       div: ['class'],
       details: ['open'],
+      h1: ['id', 'class'],
+      h2: ['id', 'class'],
+      h3: ['id', 'class'],
+      h4: ['id', 'class'],
+      h5: ['id', 'class'],
+      h6: ['id', 'class'],
     },
     allowedSchemes: ['http', 'https', 'mailto'],
   })

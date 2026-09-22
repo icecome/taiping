@@ -1,15 +1,11 @@
 import { html, raw } from 'hono/html'
 import type { ThemeMeta } from './types'
 import { formatDate } from '@taiping/shared-utils/date'
-import { isSafeExternalUrl } from '@taiping/content-model/comment'
-
-/**
- * 用户可控 URL 的渲染侧防护。
- * 契约层已拒绝不安全协议，此处兜住入库早于该约束的历史数据。
- */
-function safeExternalHref(value: string | undefined): string | undefined {
-  return value && isSafeExternalUrl(value) ? value : undefined
-}
+import {
+  safeExternalHref,
+  safeNavHref,
+  safeResourceSrc,
+} from '@taiping/content-model/url'
 
 export function Layout(meta: ThemeMeta, main: ReturnType<typeof html>) {
   const { settings } = meta
@@ -74,7 +70,7 @@ function SidebarNav(meta: ThemeMeta) {
       <ul class="sidebar-nav">
         ${settings.navigation.map(
           (item) => html`<li>
-            <a href="${item.url}" class="${isActive(path, item.url) ? 'active' : ''}">${item.name}</a>
+            <a href="${safeNavHref(item.url) || '#'}" class="${isActive(path, item.url) ? 'active' : ''}">${item.name}</a>
           </li>`,
         )}
       </ul>
@@ -121,23 +117,25 @@ function SocialIcons(social: Array<{ name: string; url: string }>) {
 
   return ordered.map((item) => {
     const key = item.name.toLowerCase()
+    const href = safeNavHref(item.url)
+    if (!href) return html``
     if (key === 'github') {
-      return html`<a href="${item.url}" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+      return html`<a href="${href}" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.167 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
       </a>`
     }
     if (key === 'rss' || item.url.includes('rss')) {
-      return html`<a href="${item.url}" target="_blank" rel="noopener" title="RSS" aria-label="RSS">
+      return html`<a href="${href}" target="_blank" rel="noopener" title="RSS" aria-label="RSS">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="6.18" cy="17.82" r="2.18"/><path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/></svg>
       </a>`
     }
     if (key === 'email' || item.url.startsWith('mailto:') || item.url.includes('@')) {
-      const href = item.url.startsWith('mailto:') ? item.url : `mailto:${item.url}`
-      return html`<a href="${href}" title="Email" aria-label="Email">
+      const mailHref = href.startsWith('mailto:') ? href : `mailto:${href}`
+      return html`<a href="${mailHref}" title="Email" aria-label="Email">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
       </a>`
     }
-    return html`<a href="${item.url}" target="_blank" rel="noopener" title="${item.name}" aria-label="${item.name}">${item.name}</a>`
+    return html`<a href="${href}" target="_blank" rel="noopener" title="${item.name}" aria-label="${item.name}">${item.name}</a>`
   })
 }
 
@@ -299,30 +297,36 @@ export function MomentsFeed(moments: Array<{
           <div class="post-content">${raw(m.contentHtml)}</div>
         </div>
         ${m.pictures.length === 1
-          ? html`<div class="single-pic-container">
-              <div class="single-pic-inner">
-                <a href="${m.pictures[0]!.url}" class="article-gallery-link" data-src="${m.pictures[0]!.url}" data-alt="${m.pictures[0]!.alt || ''}">
-                  <img src="${m.pictures[0]!.url}" alt="${m.pictures[0]!.alt || ''}" loading="lazy" class="single-pic">
-                </a>
-              </div>
-            </div>`
+          ? (() => {
+              const src = safeResourceSrc(m.pictures[0]!.url)
+              if (!src) return html``
+              return html`<div class="single-pic-container">
+                <div class="single-pic-inner">
+                  <a href="${src}" class="article-gallery-link" data-src="${src}" data-alt="${m.pictures[0]!.alt || ''}">
+                    <img src="${src}" alt="${m.pictures[0]!.alt || ''}" loading="lazy" class="single-pic">
+                  </a>
+                </div>
+              </div>`
+            })()
           : m.pictures.length > 1
             ? html`<div class="pic-grid-container">
                 <div class="pic-grid" data-columns="${cols}">
-                  ${m.pictures.map(
-                    (p) => html`<a href="${p.url}" class="grid-item article-gallery-link" data-src="${p.url}" data-alt="${p.alt || ''}">
-                      <img src="${p.url}" alt="${p.alt || ''}" loading="lazy">
-                    </a>`,
-                  )}
+                  ${m.pictures.map((p) => {
+                    const src = safeResourceSrc(p.url)
+                    if (!src) return html``
+                    return html`<a href="${src}" class="grid-item article-gallery-link" data-src="${src}" data-alt="${p.alt || ''}">
+                      <img src="${src}" alt="${p.alt || ''}" loading="lazy">
+                    </a>`
+                  })}
                 </div>
               </div>`
             : ''}
-        ${m.linkUrl
+        ${safeExternalHref(m.linkUrl)
           ? html`<div class="share-link-block">
-              <a href="${m.linkUrl}" target="_blank" rel="noopener noreferrer" class="share-link-url">${m.linkText || m.linkUrl}</a>
+              <a href="${safeExternalHref(m.linkUrl)}" target="_blank" rel="noopener noreferrer" class="share-link-url">${m.linkText || m.linkUrl}</a>
             </div>`
           : ''}
-        ${m.videoUrl ? renderVideo(m.videoUrl) : ''}
+        ${m.videoUrl && safeResourceSrc(m.videoUrl) ? renderVideo(m.videoUrl) : ''}
         <div class="moment-foot">
           ${m.tagNames?.length
             ? html`<div class="post-tags">${m.tagNames.map((t) => html`<span class="tag">${t}</span>`)}</div>`
@@ -349,8 +353,10 @@ function renderVideo(url: string) {
       ></iframe>
     </div></div>`
   }
+  const src = safeResourceSrc(url)
+  if (!src) return html``
   return html`<div class="video-container">
-    <video class="moment-video" src="${url}" controls preload="metadata"></video>
+    <video class="moment-video" src="${src}" controls preload="metadata"></video>
   </div>`
 }
 

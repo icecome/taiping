@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { countWords, readingTimeLabel } from '../src/reading-time'
-import { slugify } from '../src/slug'
+import { slugify, isValidSlug, SLUG_MAX_LEN } from '../src/slug'
 import { excerptOf } from '../src/string'
 
 describe('reading-time', () => {
@@ -18,6 +18,14 @@ describe('reading-time', () => {
 describe('slug', () => {
   it('slugifies mixed text', () => {
     expect(slugify('Hello World 你好')).toMatch(/hello-world/)
+  })
+
+  it('enforces max length 80', () => {
+    const long = 'a'.repeat(200)
+    expect(slugify(long).length).toBeLessThanOrEqual(SLUG_MAX_LEN)
+    expect(isValidSlug('a'.repeat(80))).toBe(true)
+    expect(isValidSlug('a'.repeat(81))).toBe(false)
+    expect(isValidSlug('Hello')).toBe(false)
   })
 })
 

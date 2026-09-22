@@ -19,7 +19,7 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   if (!c.req.path.startsWith('/api/admin/') && !c.req.path.startsWith('/auth/')) {
     return next()
   }
-  if (AUTH_PUBLIC_PATHS.has(c.req.path) || c.req.path.endsWith('/auth/login')) {
+  if (AUTH_PUBLIC_PATHS.has(c.req.path)) {
     return next()
   }
   if (c.req.method === 'OPTIONS') {

@@ -1,14 +1,7 @@
 import { z } from 'zod'
+import { isSafeExternalUrl } from './url'
 
-/**
- * 外部链接协议白名单。zod 的 .url() 基于 new URL()，会放行 javascript: 等协议，
- * 故凡是要渲染进 href 的字段都必须经此校验。
- */
-export const SAFE_URL_SCHEME = /^https?:\/\//i
-
-export function isSafeExternalUrl(value: string): boolean {
-  return SAFE_URL_SCHEME.test(value)
-}
+export { SAFE_URL_SCHEME, isSafeExternalUrl } from './url'
 
 export const commentTargetTypeSchema = z.enum(['guestbook', 'post', 'moment'])
 export type CommentTargetType = z.infer<typeof commentTargetTypeSchema>

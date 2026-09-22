@@ -1,10 +1,11 @@
 import type { D1Database } from '@cloudflare/workers-types'
 import type { Env } from '../env'
 import type { Admin } from '@taiping/content-model/auth'
-import { hashPassword, hmacSign, hmacVerify, verifyPassword } from '../lib/crypto'
+import { hashPassword, hmacSign, hmacVerify, verifyPassword, timingSafeEqual } from '../lib/crypto'
 import { checkLoginAllowed, hashClientIp, recordAttempt } from './authAttempts'
 import { newId } from '../lib/cache'
-import { nowIso } from '@taiping/shared-utils'
+import { readCookie } from '../lib/cookie'
+import { nowIso, randomToken } from '@taiping/shared-utils'
 
 const COOKIE_NAME = 'tp_session'
 const TRUSTED_TTL_MS = 7 * 24 * 60 * 60 * 1000
@@ -94,7 +95,7 @@ export async function login(
       .first<{ password_hash: string; username: string }>()
     if (row) {
       // 用户名恒定时间比较 + 口令走 PBKDF2 校验，避免用户名枚举的时序差异
-      const userOk = constantTimeEquals(username, row.username)
+      const userOk = await timingSafeEqual(username, row.username)
       const passOk = await verifyPassword(password, row.password_hash)
       ok = userOk && passOk
     }
@@ -107,7 +108,7 @@ export async function login(
   }
   await recordAttempt(ctx, true)
 
-  const sessionId = crypto.randomUUID().replace(/-/g, '')
+  const sessionId = randomToken()
   const now = nowIso()
   const ttl = trusted ? TRUSTED_TTL_MS : DEFAULT_TTL_MS
   const expMs = Date.now() + ttl
@@ -192,7 +193,7 @@ export async function createPasswordResetToken(
   const email = (row.email ?? '').trim()
   if (!email) return null
 
-  const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '')
+  const token = randomToken()
   const now = nowIso()
   const expiresAt = new Date(Date.now() + RESET_TTL_MINUTES * 60_000).toISOString()
 
@@ -317,30 +318,14 @@ export async function validateSession(
 function parseSessionCookie(
   cookieHeader: string | undefined,
 ): { sessionId: string; expMs: number; signature: string } | null {
-  if (!cookieHeader) return null
-  const parts = cookieHeader.split(';').map((p) => p.trim())
-  const raw = parts.find((p) => p.startsWith(`${COOKIE_NAME}=`))
-  if (!raw) return null
-  const value = raw.slice(COOKIE_NAME.length + 1)
+  const value = readCookie(cookieHeader, COOKIE_NAME)
+  if (!value) return null
   const segments = value.split('.')
   if (segments.length !== 3) return null
   const [sessionId, expRaw, signature] = segments as [string, string, string]
   const expMs = Number(expRaw)
   if (!sessionId || !signature || !Number.isFinite(expMs)) return null
   return { sessionId, expMs, signature }
-}
-
-/**
- * 恒定时间字符串比较。
- * 长度不等时不做提前返回，而是继续比较最大长度以接近恒定耗时。
- */
-function constantTimeEquals(a: string, b: string): boolean {
-  const max = Math.max(a.length, b.length)
-  let diff = a.length ^ b.length
-  for (let i = 0; i < max; i++) {
-    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0)
-  }
-  return diff === 0
 }
 
 export function unlockCookieName(slug: string): string {

@@ -1,4 +1,5 @@
 import type { Env } from '../env'
+import { isSafeExternalUrl } from '@taiping/content-model/url'
 
 /**
  * 邮件发送（Resend）。
@@ -43,6 +44,10 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;')
 }
 
+function truncate(s: string, n = 200): string {
+  return s.length > n ? `${s.slice(0, n)}…` : s
+}
+
 /** 字段块：标签在上、内容在下，行间细线分隔 */
 function field(label: string, valueHtml: string): string {
   return `<tr>
@@ -54,7 +59,8 @@ function field(label: string, valueHtml: string): string {
 }
 
 function button(href: string, label: string): string {
-  return `<a href="${href}" style="display:inline-block;padding:11px 22px;background:${PALETTE.ink};color:#fff;text-decoration:none;border-radius:4px;font-size:14px;letter-spacing:0.04em;">${label}</a>`
+  const safe = isSafeExternalUrl(href) ? href : '#'
+  return `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 22px;background:${PALETTE.ink};color:#fff;text-decoration:none;border-radius:4px;font-size:14px;letter-spacing:0.04em;">${label}</a>`
 }
 
 /** 邮件外壳：暖色背景 + 衬线排版 */
@@ -132,7 +138,7 @@ export async function sendPasswordResetEmail(
       '有效期',
       `<strong>${ttlMinutes} 分钟</strong>，且仅可使用一次`,
     ) +
-    `<tr><td style="padding:20px 0 6px;">${button(escapeHtml(resetUrl), '重置口令')}</td></tr>` +
+    `<tr><td style="padding:20px 0 6px;">${button(resetUrl, '重置口令')}</td></tr>` +
     field(
       '若按钮无法点击',
       `<span style="font-size:13px;color:${PALETTE.ink2};word-break:break-all;">${escapeHtml(resetUrl)}</span>`,
@@ -168,14 +174,14 @@ export async function sendCommentReplyEmail(
   const canReply = Boolean(env.INBOUND_REPLY_DOMAIN && replyToken)
   const replyTo = canReply ? `reply+${replyToken}@${env.INBOUND_REPLY_DOMAIN}` : undefined
 
-  const truncate = (s: string, n = 200) => (s.length > n ? `${s.slice(0, n)}…` : s)
-
   const body =
     field('你的留言', escapeHtml(truncate(originalContent))) +
     field('博主回复', escapeHtml(replyContent)) +
     field(
       '原文',
-      `<a href="${escapeHtml(pageUrl)}" style="color:${PALETTE.brand};text-decoration:underline;">${escapeHtml(pageTitle)}</a>`,
+      isSafeExternalUrl(pageUrl)
+        ? `<a href="${escapeHtml(pageUrl)}" style="color:${PALETTE.brand};text-decoration:underline;">${escapeHtml(pageTitle)}</a>`
+        : escapeHtml(pageTitle),
     ) +
     (canReply
       ? field(

@@ -2,9 +2,9 @@ import type { D1Database } from '@cloudflare/workers-types'
 import type { Term, TermInput } from '@taiping/content-model/term'
 import type { Post } from '@taiping/content-model/post'
 import { newId } from '../lib/cache'
-import { bumpCacheVersion } from '../lib/cache'
 import { enqueueMirror } from '../lib/mirror'
 import { rowToPost, type PostRow } from './posts'
+import { slugify } from '@taiping/shared-utils'
 
 interface TermRow {
   id: string
@@ -24,14 +24,28 @@ export async function listTerms(db: D1Database, type?: 'category' | 'tag'): Prom
   return rows.results.map(rowToTerm)
 }
 
+/** 分类/标签列表 + 已发布文章数（单条聚合，避免 N+1） */
+export async function listTermsWithCounts(
+  db: D1Database,
+  type: 'category' | 'tag',
+): Promise<Array<Term & { count: number }>> {
+  const rows = await db
+    .prepare(
+      `SELECT t.id, t.type, t.name, t.slug, COUNT(p.id) AS count
+       FROM terms t
+       LEFT JOIN post_terms pt ON pt.term_id = t.id
+       LEFT JOIN posts p ON p.id = pt.post_id AND p.status = 'published'
+       WHERE t.type = ?
+       GROUP BY t.id
+       ORDER BY t.name`,
+    )
+    .bind(type)
+    .all<TermRow & { count: number }>()
+  return rows.results.map((row) => ({ ...rowToTerm(row), count: row.count }))
+}
+
 export async function createTerm(db: D1Database, input: TermInput): Promise<Term> {
-  const slug =
-    input.slug ||
-    input.name
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}]+/gu, '-')
-      .replace(/^-+|-+$/g, '') ||
-    `term-${Date.now().toString(36)}`
+  const slug = input.slug || slugify(input.name, 'term')
   const existing = await db
     .prepare('SELECT * FROM terms WHERE type = ? AND slug = ?')
     .bind(input.type, slug)
@@ -45,7 +59,6 @@ export async function createTerm(db: D1Database, input: TermInput): Promise<Term
     .bind(id, input.type, input.name, slug)
     .run()
   await enqueueMirror(db, 'term', id, 'upsert')
-  await bumpCacheVersion(db, 'config')
   return { id, type: input.type, name: input.name, slug }
 }
 
@@ -74,14 +87,12 @@ export async function updateTerm(
     .bind(name, nextSlug, id)
     .run()
   await enqueueMirror(db, 'term', id, 'upsert')
-  await bumpCacheVersion(db, 'config')
   return { id, type: existing.type, name, slug: nextSlug }
 }
 
 export async function deleteTerm(db: D1Database, id: string): Promise<void> {
   await db.prepare('DELETE FROM terms WHERE id = ?').bind(id).run()
   await enqueueMirror(db, 'term', id, 'delete')
-  await bumpCacheVersion(db, 'config')
 }
 
 export async function listPostsByTermSlug(

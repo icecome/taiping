@@ -42,6 +42,7 @@ import { clearDraft, createDebouncedSaver, loadDraft } from '../features/moment/
 import { ImageGridEditor } from '../components/media/ImageGridEditor'
 import { MediaPicker } from '../components/media/MediaPicker'
 import type { MediaFile } from '../lib/mediaUtils'
+import { truncate } from '@taiping/shared-utils/string'
 
 // ===== 日期分组（存储 UTC，展示按上海） =====
 interface DateGroup {
@@ -946,7 +947,7 @@ export function MomentListPage() {
     if (!stored) return
 
     void (async () => {
-      const preview = stored.draft.contentMd.trim().slice(0, 40)
+      const preview = truncate(stored.draft.contentMd.trim(), 40)
       const ok = await confirmDialog({
         title: '恢复未发布的内容？',
         description: preview

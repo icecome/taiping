@@ -71,14 +71,14 @@ export async function hashIp(ip: string, secret: string): Promise<string> {
   return bytesToHex(new Uint8Array(digest)).slice(0, 32)
 }
 
-function bytesToHex(bytes: Uint8Array): string {
+export function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 }
 
-function hexToBytes(hex: string): Uint8Array {
-  if (hex.length % 2 !== 0) throw new Error('invalid hex')
+export function hexToBytes(hex: string): Uint8Array {
+  if (hex.length % 2 !== 0 || !/^[0-9a-fA-F]*$/.test(hex)) throw new Error('invalid hex')
   const out = new Uint8Array(hex.length / 2)
   for (let i = 0; i < out.length; i++) {
     out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16)
@@ -90,21 +90,26 @@ function hexToBytes(hex: string): Uint8Array {
  * 恒定时间比较。
  * 生产（Workers）优先使用原生 crypto.subtle.timingSafeEqual；
  * 该 API 非标准 Web Crypto，Node 测试环境缺失，故回退到手写 XOR 实现。
+ * 长度不同时也走满比较，避免提前 return 泄露长度信息。
  */
-async function timingSafeEqual(a: string, b: string): Promise<boolean> {
+export async function timingSafeEqual(a: string, b: string): Promise<boolean> {
   const ab = encoder.encode(a)
   const bb = encoder.encode(b)
-  if (ab.byteLength !== bb.byteLength) return false
+  const maxLen = Math.max(ab.byteLength, bb.byteLength)
+  const xa = new Uint8Array(maxLen)
+  const ya = new Uint8Array(maxLen)
+  xa.set(ab)
+  ya.set(bb)
+  let diff = ab.byteLength ^ bb.byteLength
   const subtle = crypto.subtle as SubtleCrypto & {
     timingSafeEqual?: (x: BufferSource, y: BufferSource) => boolean
   }
   if (typeof subtle.timingSafeEqual === 'function') {
     // 保留接收者，避免部分运行时对方法脱离对象调用报 Illegal invocation
-    return subtle.timingSafeEqual(ab, bb)
+    return subtle.timingSafeEqual(xa, ya) && diff === 0
   }
-  let diff = 0
-  for (let i = 0; i < ab.byteLength; i++) {
-    diff |= (ab[i] ?? 0) ^ (bb[i] ?? 0)
+  for (let i = 0; i < maxLen; i++) {
+    diff |= (xa[i] ?? 0) ^ (ya[i] ?? 0)
   }
   return diff === 0
 }

@@ -1,7 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types'
 import type { SiteSettings } from '@taiping/content-model/settings'
-import { siteSettingsSchema } from '@taiping/content-model/settings'
-import { nowIso } from '@taiping/shared-utils'
+import { parseSiteSettings, siteSettingsSchema } from '@taiping/content-model/settings'
 
 export async function getSettings(db: D1Database): Promise<SiteSettings> {
   const rows = await db.prepare('SELECT key, value FROM settings').all<{
@@ -16,7 +15,7 @@ export async function getSettings(db: D1Database): Promise<SiteSettings> {
       // skip invalid json rows
     }
   }
-  return siteSettingsSchema.parse(merged)
+  return parseSiteSettings(merged)
 }
 
 export async function saveSettings(db: D1Database, settings: SiteSettings): Promise<void> {
@@ -30,8 +29,4 @@ export async function saveSettings(db: D1Database, settings: SiteSettings): Prom
       .bind(key, JSON.stringify(value)),
   )
   await db.batch(statements)
-}
-
-export function now(): string {
-  return nowIso()
 }

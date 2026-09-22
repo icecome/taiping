@@ -69,11 +69,17 @@ function padZero(n: number, len = 2): string {
 
 function randomString(length: number): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  // 拒绝采样消除模偏差
+  const limit = Math.floor(256 / chars.length) * chars.length
   let result = ''
-  const bytes = new Uint8Array(length)
-  crypto.getRandomValues(bytes)
-  for (let i = 0; i < length; i++) {
-    result += chars[(bytes[i] ?? 0) % chars.length]
+  while (result.length < length) {
+    const bytes = new Uint8Array(length - result.length)
+    crypto.getRandomValues(bytes)
+    for (const b of bytes) {
+      if (b >= limit) continue
+      result += chars[b % chars.length]
+      if (result.length >= length) break
+    }
   }
   return result
 }

@@ -1,5 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types'
 import type { MirrorEntityType, MirrorOp } from '@taiping/content-model/mirror'
+import { createId } from '@taiping/shared-utils'
 
 export async function enqueueMirror(
   db: D1Database,
@@ -7,7 +8,7 @@ export async function enqueueMirror(
   entityId: string,
   op: MirrorOp,
 ): Promise<string> {
-  const id = `mq_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`
+  const id = createId('mq')
   await db
     .prepare(
       `INSERT INTO mirror_queue (id, entity_type, entity_id, op, status, retry_count, created_at)

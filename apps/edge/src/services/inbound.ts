@@ -157,16 +157,9 @@ export function extractReplyText(raw: string): string {
 /**
  * 事件幂等去重：Svix 重试携带相同 svix-id，
  * INSERT OR IGNORE 命中 0 行说明已处理过。
+ * 表结构见 migrations/0007_webhook_events.sql。
  */
 export async function claimWebhookEvent(db: D1Database, svixId: string): Promise<boolean> {
-  await db
-    .prepare(
-      `CREATE TABLE IF NOT EXISTS webhook_events (
-         svix_id TEXT PRIMARY KEY,
-         created_at TEXT NOT NULL
-       )`,
-    )
-    .run()
   const result = await db
     .prepare('INSERT OR IGNORE INTO webhook_events (svix_id, created_at) VALUES (?, ?)')
     .bind(svixId, new Date().toISOString())

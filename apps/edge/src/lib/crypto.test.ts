@@ -12,3 +12,13 @@ describe('hmac session payload', () => {
     await expect(hmacVerify(payload, sig, secret)).resolves.toBe(true)
   })
 })
+
+describe('hmacVerify length mismatch', () => {
+  it('rejects truncated and extended signatures without throwing', async () => {
+    const secret = 'dev-session-secret-please-change'
+    const sig = await hmacSign('payload', secret)
+    await expect(hmacVerify('payload', sig.slice(0, 32), secret)).resolves.toBe(false)
+    await expect(hmacVerify('payload', `${sig}00`, secret)).resolves.toBe(false)
+    await expect(hmacVerify('payload', '', secret)).resolves.toBe(false)
+  })
+})

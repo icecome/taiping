@@ -14,6 +14,7 @@ import { ErrorState } from '../components/ui/ErrorState'
 import { Drawer } from '../components/ui/Drawer'
 import { toast } from '../lib/toast'
 import type { Term } from '@taiping/content-model/term'
+import { isValidSlug } from '@taiping/shared-utils/slug'
 import { PageSticky } from '../components/layout/PageSticky'
 
 type TermType = 'category' | 'tag'
@@ -110,7 +111,7 @@ export function TaxonomyPage() {
     if (ok) remove.mutate(term.id)
   }
 
-  const slugValid = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(editSlug.trim())
+  const slugValid = isValidSlug(editSlug.trim())
   const canSave = Boolean(editName.trim()) && slugValid && !update.isPending
 
   const handleSaveEdit = () => {

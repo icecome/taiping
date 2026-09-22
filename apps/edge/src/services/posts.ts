@@ -2,10 +2,9 @@ import type { D1Database } from '@cloudflare/workers-types'
 import type { Post, PostInput, PostListQuery } from '@taiping/content-model/post'
 import type { Paginated } from '@taiping/content-model/api'
 import { deriveExcerpt, deriveReadingTime, renderMarkdownSafe } from '@taiping/renderer/markdown'
-import { nowIso } from '@taiping/shared-utils'
+import { nowIso, slugify } from '@taiping/shared-utils'
 import { newId } from '../lib/cache'
 import { enqueueMirror } from '../lib/mirror'
-import { bumpCacheVersion } from '../lib/cache'
 import { hashPassword } from '../lib/crypto'
 
 export interface PostRow {
@@ -151,10 +150,7 @@ async function resolveOrCreateTerms(
   for (const name of tagNames) {
     const trimmed = name.trim()
     if (!trimmed) continue
-    const slug = trimmed
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}]+/gu, '-')
-      .replace(/^-+|-+$/g, '') || `tag-${Date.now().toString(36)}`
+    const slug = slugify(trimmed, 'tag')
     const existing = await db
       .prepare('SELECT id FROM terms WHERE type = ? AND slug = ?')
       .bind('tag', slug)
@@ -235,8 +231,6 @@ export async function createPost(db: D1Database, input: PostInput): Promise<Post
   const termIds = await resolveOrCreateTerms(db, input.categoryIds, input.tagNames)
   await syncPostTerms(db, id, termIds)
   await enqueueMirror(db, input.type === 'page' ? 'page' : 'post', id, 'upsert')
-  await bumpCacheVersion(db, 'content')
-  await bumpCacheVersion(db, 'index')
 
   const created = await getPostById(db, id)
   if (!created) throw new Error('create post failed')
@@ -304,8 +298,6 @@ export async function updatePost(db: D1Database, id: string, input: PostInput): 
   const termIds = await resolveOrCreateTerms(db, input.categoryIds, input.tagNames)
   await syncPostTerms(db, id, termIds)
   await enqueueMirror(db, current.type === 'page' ? 'page' : 'post', id, 'upsert')
-  await bumpCacheVersion(db, 'content')
-  await bumpCacheVersion(db, 'index')
 
   const updated = await getPostById(db, id)
   if (!updated) throw new Error('update post failed')
@@ -319,8 +311,6 @@ export async function deletePost(db: D1Database, id: string): Promise<void> {
   }
   await db.prepare('DELETE FROM posts WHERE id = ?').bind(id).run()
   await enqueueMirror(db, current.type === 'page' ? 'page' : 'post', id, 'delete')
-  await bumpCacheVersion(db, 'content')
-  await bumpCacheVersion(db, 'index')
 }
 
 export async function setPostStatus(

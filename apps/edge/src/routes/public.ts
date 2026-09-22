@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { buildExcerptAndReading, findPrevNext, paginate } from '@taiping/renderer/derive'
 import { renderMarkdownSafe } from '@taiping/renderer/markdown'
-import { monthOf } from '@taiping/shared-utils/date'
+import { monthOf, yearOf } from '@taiping/shared-utils/date'
 import {
   renderArchives,
   renderGuestbook,
@@ -16,10 +16,11 @@ import {
 import type { AppEnv } from '../lib/http'
 import type { AppContext } from '../lib/http'
 import { getSettings } from '../lib/settings'
+import { readCookie } from '../lib/cookie'
 import { getPostBySlug, getPostTerms, getPublishedPosts } from '../services/posts'
 import { listPublicCommentsWithReplies } from '../services/comments'
 import { listPublishedMoments } from '../services/moments'
-import { getTermBySlug, listTerms, listPostsByTermSlug } from '../services/terms'
+import { getTermBySlug, listTermsWithCounts, listPostsByTermSlug } from '../services/terms'
 import { verifyUnlockToken, unlockCookieName } from '../services/auth'
 import type { Post } from '@taiping/content-model/post'
 import type { SiteSettings } from '@taiping/content-model/settings'
@@ -95,7 +96,7 @@ publicRoutes.get('/posts/:slug', async (c) => {
   const unlocked =
     !post.encrypt ||
     (await verifyUnlockToken(
-      parseCookie(c.req.header('Cookie'), unlockCookieName(post.slug)),
+      readCookie(c.req.header('Cookie'), unlockCookieName(post.slug)),
       post.id,
       c.env.SESSION_SECRET,
     ))
@@ -153,7 +154,7 @@ publicRoutes.get('/archives', async (c) => {
       groupBy === 'month'
         ? monthOf(card.publishedAt)
         : card.publishedAt
-          ? card.publishedAt.slice(0, 4)
+          ? String(yearOf(card.publishedAt))
           : '未标注'
     const list = map.get(key) ?? []
     list.push(card)
@@ -215,20 +216,14 @@ publicRoutes.get('/guestbook', async (c) => {
 
 publicRoutes.get('/categories', async (c) => {
   const settings = await getSettings(c.env.DB)
-  const terms = await listTerms(c.env.DB, 'category')
-  const withCounts = await Promise.all(
-    terms.map(async (term) => {
-      const posts = await listPostsByTermSlug(c.env.DB, 'category', term.slug)
-      return { ...term, count: posts.length }
-    }),
-  )
+  const terms = await listTermsWithCounts(c.env.DB, 'category')
   return c.html(
     renderTaxonomy({
       settings,
       path: '/categories',
       title: '分类',
       termType: 'category',
-      terms: withCounts,
+      terms,
       posts: [],
     }),
   )
@@ -238,20 +233,14 @@ publicRoutes.get('/categories/:slug', async (c) => renderTermPage(c, 'category')
 
 publicRoutes.get('/tags', async (c) => {
   const settings = await getSettings(c.env.DB)
-  const terms = await listTerms(c.env.DB, 'tag')
-  const withCounts = await Promise.all(
-    terms.map(async (term) => {
-      const posts = await listPostsByTermSlug(c.env.DB, 'tag', term.slug)
-      return { ...term, count: posts.length }
-    }),
-  )
+  const terms = await listTermsWithCounts(c.env.DB, 'tag')
   return c.html(
     renderTaxonomy({
       settings,
       path: '/tags',
       title: '标签',
       termType: 'tag',
-      terms: withCounts,
+      terms,
       posts: [],
     }),
   )
@@ -332,12 +321,5 @@ publicRoutes.get('/sitemap.xml', async (c) => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>`
   return c.body(xml, 200, { 'Content-Type': 'application/xml; charset=utf-8' })
 })
-
-function parseCookie(header: string | undefined, name: string): string | undefined {
-  if (!header) return undefined
-  const parts = header.split(';').map((p) => p.trim())
-  const hit = parts.find((p) => p.startsWith(`${name}=`))
-  return hit ? hit.slice(name.length + 1) : undefined
-}
 
 export default publicRoutes

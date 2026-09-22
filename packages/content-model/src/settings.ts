@@ -1,4 +1,19 @@
 import { z } from 'zod'
+import { isSafeNavUrl } from './url'
+
+/** 越界数值钳制到 [min,max]，非法值回落 fallback，避免历史脏数据导致 parse 抛错 */
+function clampInt(min: number, max: number, fallback: number) {
+  return z.preprocess((val) => {
+    const n = typeof val === 'number' ? val : Number(val)
+    if (!Number.isFinite(n)) return fallback
+    return Math.min(max, Math.max(min, Math.round(n)))
+  }, z.number().int().min(min).max(max))
+}
+
+const navLinkSchema = z.object({
+  name: z.string(),
+  url: z.string().refine(isSafeNavUrl, '链接仅支持站内路径、http/https 或 mailto'),
+})
 
 export const mediaStorageConfigSchema = z.object({
   id: z.string().min(1),
@@ -10,7 +25,7 @@ export const mediaStorageConfigSchema = z.object({
   pathPrefix: z.string().default('uploads'),
   cdnProvider: z.enum(['jsdmirror', 'github_raw', 'custom']).default('jsdmirror'),
   cdnTemplate: z.string().default(''),
-  quality: z.number().int().min(10).max(100).default(80),
+  quality: clampInt(10, 100, 80).default(80),
   renameTemplate: z.string().default('{Y}{m}{d}-{str-6}'),
   duplicateStrategy: z.enum(['skip', 'overwrite']).default('skip'),
 })
@@ -22,33 +37,19 @@ export const siteSettingsSchema = z.object({
   description: z.string().default('三无，无住无心无求......；亦，也；拾，捡起，收拾，整理；吾，我。'),
   author: z.string().default('徐宋柏'),
   url: z.string().url().or(z.literal('')).default(''),
-  navigation: z
-    .array(
-      z.object({
-        name: z.string(),
-        url: z.string(),
-      }),
-    )
-    .default([
-      { name: '匪吾', url: '/' },
-      { name: '归档', url: '/archives' },
-      { name: '说说', url: '/moments' },
-      { name: '留言', url: '/guestbook' },
-      { name: '底片', url: '/pages/about' },
-    ]),
-  social: z
-    .array(
-      z.object({
-        name: z.string(),
-        url: z.string(),
-      }),
-    )
-    .default([
-      { name: 'GitHub', url: 'https://github.com/icecome' },
-      { name: 'Email', url: 'mailto:lice@lice.com' },
-      { name: 'RSS', url: '/rss.xml' },
-    ]),
-  postsPerPage: z.number().int().min(1).max(50).default(10),
+  navigation: z.array(navLinkSchema).default([
+    { name: '匪吾', url: '/' },
+    { name: '归档', url: '/archives' },
+    { name: '说说', url: '/moments' },
+    { name: '留言', url: '/guestbook' },
+    { name: '底片', url: '/pages/about' },
+  ]),
+  social: z.array(navLinkSchema).default([
+    { name: 'GitHub', url: 'https://github.com/icecome' },
+    { name: 'Email', url: 'mailto:lice@lice.com' },
+    { name: 'RSS', url: '/rss.xml' },
+  ]),
+  postsPerPage: clampInt(1, 50, 10).default(10),
   guestbookEnabled: z.boolean().default(true),
   archiveGroupBy: z.enum(['year', 'month']).default('year'),
   sidebarPosition: z.enum(['right', 'left']).default('right'),
@@ -60,7 +61,7 @@ export const siteSettingsSchema = z.object({
   commentsRequireModeration: z.boolean().default(true),
   commentsWhitelist: z.boolean().default(true),
   commentsCheckReferer: z.boolean().default(false),
-  commentsPostInterval: z.number().int().min(0).max(3600).default(60),
+  commentsPostInterval: clampInt(0, 3600, 60).default(60),
   commentsStopWords: z.string().default(''),
   commentsIpBlackList: z.string().default(''),
   /**
@@ -215,6 +216,28 @@ export const settingsKeySchema = z.object({
 export type SettingsRow = z.infer<typeof settingsKeySchema>
 
 export const defaultSettings: SiteSettings = siteSettingsSchema.parse({})
+
+/**
+ * 读取侧宽松解析：整包失败时逐字段回落默认值，避免单条脏数据导致全站 500。
+ * 写入侧仍建议使用 siteSettingsSchema.parse/safeParse 做完整校验。
+ */
+export function parseSiteSettings(input: unknown): SiteSettings {
+  const result = siteSettingsSchema.safeParse(input)
+  if (result.success) return result.data
+
+  const recovered: Record<string, unknown> = { ...defaultSettings }
+  if (input && typeof input === 'object') {
+    const src = input as Record<string, unknown>
+    for (const key of Object.keys(defaultSettings) as Array<keyof SiteSettings>) {
+      if (!(key in src)) continue
+      const single = siteSettingsSchema.safeParse({ ...defaultSettings, [key]: src[key] })
+      if (single.success) {
+        recovered[key] = single.data[key]
+      }
+    }
+  }
+  return siteSettingsSchema.parse(recovered)
+}
 
 /** 图床配置项字段（设置页列表表单使用） */
 export const mediaConfigFields: Array<{

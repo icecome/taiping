@@ -75,27 +75,35 @@ export function MediaPicker({
     mutationFn: async (fileList: FileList | File[]) => {
       const quality = activeCfg?.quality ?? 80
       const rename = activeCfg?.renameTemplate || '{Y}{m}{d}-{str-6}'
+      const files = Array.from(fileList).filter((file) => file.type.startsWith('image/'))
       const results: string[] = []
-      for (const file of Array.from(fileList)) {
-        if (!file.type.startsWith('image/')) continue
-        if (file.size > MAX_FILE_SIZE) {
-          results.push(`${file.name}: 超过 20MB`)
-          continue
-        }
-        const blob = await compressImage(file, quality)
-        const base64 = await blobToBase64(blob)
-        const filename = `${resolveRenameTemplate(rename, file.name)}.webp`
-        const uploaded = await api.media.githubUpload({
-          base64Content: base64,
-          filename,
-          message: `[skip ci] upload: ${filename}`,
-        })
-        results.push(uploaded.url)
-        setFiles((prev) => [
-          { name: uploaded.path.split('/').pop() || filename, path: uploaded.path, sha: uploaded.sha, size: blob.size, url: uploaded.url },
-          ...prev,
-        ])
-      }
+      await Promise.allSettled(
+        files.map(async (file) => {
+          if (file.size > MAX_FILE_SIZE) {
+            results.push(`${file.name}: 超过 20MB`)
+            return
+          }
+          const blob = await compressImage(file, quality)
+          const base64 = await blobToBase64(blob)
+          const filename = `${resolveRenameTemplate(rename, file.name)}.webp`
+          const uploaded = await api.media.githubUpload({
+            base64Content: base64,
+            filename,
+            message: `[skip ci] upload: ${filename}`,
+          })
+          results.push(uploaded.url)
+          setFiles((prev) => [
+            {
+              name: uploaded.path.split('/').pop() || filename,
+              path: uploaded.path,
+              sha: uploaded.sha,
+              size: blob.size,
+              url: uploaded.url,
+            },
+            ...prev,
+          ])
+        }),
+      )
       return results
     },
     onSuccess: (urls) => {

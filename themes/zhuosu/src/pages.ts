@@ -1,5 +1,6 @@
 import { html, raw } from 'hono/html'
-import { formatDate } from '@taiping/shared-utils/date'
+import { formatDate, nowIso } from '@taiping/shared-utils'
+import { safeResourceSrc } from '@taiping/content-model/url'
 import {
   ArticleCard,
   CommentForm,
@@ -66,7 +67,9 @@ export function renderPost(ctx: PostContext) {
           <span class="meta-dot">·</span>
           <span class="meta-reading">${reading}</span>
         </div>
-        ${post.cover ? html`<div class="post-cover"><img src="${post.cover}" alt="${post.title}"></div>` : ''}
+        ${post.cover && safeResourceSrc(post.cover)
+          ? html`<div class="post-cover"><img src="${safeResourceSrc(post.cover)}" alt="${post.title}"></div>`
+          : ''}
       </header>
       ${body}
       <footer class="post-footer">
@@ -178,7 +181,7 @@ export function renderGuestbook(ctx: GuestbookContext) {
     { ...ctx, title: '访客留言' },
     html`<div class="page-header">
         <h1 class="section-title">访客留言</h1>
-        <div class="section-desc">${formatDate(new Date().toISOString(), 'YYYY-MM-DD')} · 弹指可览</div>
+        <div class="section-desc">${formatDate(nowIso(), 'YYYY-MM-DD')} · 弹指可览</div>
       </div>
       <div class="guestbook-intro">
         <p>欢迎留下你的想法，无论是鼓励、建议还是吐槽，我都会认真阅读。</p>

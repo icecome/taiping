@@ -7,7 +7,7 @@ import type {
 } from '@taiping/content-model/comment'
 import type { Paginated } from '@taiping/content-model/api'
 import { renderMarkdownSafe } from '@taiping/renderer/markdown'
-import { nowIso } from '@taiping/shared-utils'
+import { nowIso, randomToken } from '@taiping/shared-utils'
 import type { Env } from '../env'
 import { newId } from '../lib/cache'
 import { enqueueMirror } from '../lib/mirror'
@@ -315,7 +315,7 @@ function rowToReply(row: ReplyRow): CommentReply {
 
 /** 生成回信令牌：仅需不可猜测，无需哈希（需可读取以构造 Reply-To） */
 function generateReplyToken(): string {
-  return crypto.randomUUID().replace(/-/g, '')
+  return randomToken()
 }
 
 export async function listReplies(db: D1Database, commentId: string): Promise<CommentReply[]> {

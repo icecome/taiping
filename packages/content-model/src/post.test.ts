@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { postSchema, postInputSchema } from '../src/post'
 import { commentCreateSchema } from '../src/comment'
-import { siteSettingsSchema, settingFields } from '../src/settings'
+import {
+  siteSettingsSchema,
+  settingFields,
+  parseSiteSettings,
+  defaultSettings,
+  mediaStorageConfigSchema,
+} from '../src/settings'
 import { ok, fail } from '../src/api'
 
 describe('postSchema', () => {
@@ -70,6 +76,41 @@ describe('siteSettingsSchema', () => {
     expect(parsed.commentsWhitelist).toBe(true)
     expect(parsed.commentsPostInterval).toBe(60)
     expect(settingFields.some((f) => f.name === 'commentsRequireModeration')).toBe(true)
+  })
+
+  it('clamps out-of-range numeric fields', () => {
+    const parsed = siteSettingsSchema.parse({
+      postsPerPage: 999,
+      commentsPostInterval: -5,
+    })
+    expect(parsed.postsPerPage).toBe(50)
+    expect(parsed.commentsPostInterval).toBe(0)
+
+    const quality = mediaStorageConfigSchema.parse({
+      id: 'x',
+      name: 'n',
+      quality: 5,
+    })
+    expect(quality.quality).toBe(10)
+  })
+})
+
+describe('parseSiteSettings', () => {
+  it('recovers from dirty fields without throwing', () => {
+    const parsed = parseSiteSettings({
+      title: '正常标题',
+      postsPerPage: 1000,
+      navigation: 'not-an-array',
+      unknownKey: true,
+    })
+    expect(parsed.title).toBe('正常标题')
+    expect(parsed.postsPerPage).toBe(50)
+    expect(parsed.navigation).toEqual(defaultSettings.navigation)
+  })
+
+  it('falls back to defaults for non-object input', () => {
+    expect(parseSiteSettings(null)).toEqual(defaultSettings)
+    expect(parseSiteSettings('oops')).toEqual(defaultSettings)
   })
 })
 

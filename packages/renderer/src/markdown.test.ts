@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { renderMarkdownSafe, deriveExcerpt } from '../src/markdown'
+import { renderMarkdownSafe, deriveExcerpt, extractHeadings } from '../src/markdown'
 import { paginate, findPrevNext } from '../src/derive'
 import type { Post } from '@taiping/content-model/post'
 
@@ -8,6 +8,17 @@ describe('markdown', () => {
     const html = renderMarkdownSafe('# Hello\n\n**bold**')
     expect(html).toContain('<h1')
     expect(html).toContain('<strong>bold</strong>')
+  })
+
+  it('extracts headings with anchor ids', () => {
+    const html = renderMarkdownSafe('# 标题一\n\n## Section Two\n\ntext')
+    const headings = extractHeadings(html)
+    expect(headings.length).toBe(2)
+    expect(headings[0]?.level).toBe(1)
+    expect(headings[0]?.text).toBe('标题一')
+    expect(headings[0]?.id).toBeTruthy()
+    expect(headings[1]?.level).toBe(2)
+    expect(headings[1]?.id).toBe('section-two')
   })
 
   it('strips script tags', () => {

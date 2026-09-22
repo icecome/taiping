@@ -1,8 +1,15 @@
 import { z } from 'zod'
 
+/** 登录口令下限：兼容历史短口令 */
+export const LOGIN_PASSWORD_MIN = 4
+/** 新建/重置口令下限 */
+export const NEW_PASSWORD_MIN = 8
+/** 文章访问密码下限 */
+export const ENCRYPT_PASSWORD_MIN = 4
+
 export const loginSchema = z.object({
   username: z.string().min(1).max(64),
-  password: z.string().min(4).max(128),
+  password: z.string().min(LOGIN_PASSWORD_MIN).max(128),
 })
 export type LoginInput = z.infer<typeof loginSchema>
 
@@ -31,7 +38,7 @@ export type Admin = z.infer<typeof adminSchema>
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1).max(128),
-    newPassword: z.string().min(8).max(128),
+    newPassword: z.string().min(NEW_PASSWORD_MIN).max(128),
     confirmPassword: z.string().min(1).max(128),
   })
   .refine((v) => v.newPassword === v.confirmPassword, {
@@ -54,7 +61,7 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>
 export const resetPasswordSchema = z
   .object({
     token: z.string().min(16).max(128),
-    newPassword: z.string().min(8).max(128),
+    newPassword: z.string().min(NEW_PASSWORD_MIN).max(128),
     confirmPassword: z.string().min(1).max(128),
   })
   .refine((v) => v.newPassword === v.confirmPassword, {

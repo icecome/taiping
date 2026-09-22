@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api/endpoints'
 import { getActiveMediaConfig } from '@taiping/content-model/settings'
@@ -31,10 +31,19 @@ interface Options {
 
 /**
  * 图片上传：校验 → 压缩 → 上传至图床 → 回报进度。
- * 串行上传以保持用户选择顺序，避免插入顺序错乱。
+ * 并发上传，按用户选择顺序入列与回收。
  */
 export function useMediaUpload({ onPictureUpdate, currentCount }: Options) {
   const abortRef = useRef<AbortController | null>(null)
+  const blobUrlsRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    const urls = blobUrlsRef.current
+    return () => {
+      for (const url of urls) URL.revokeObjectURL(url)
+      urls.clear()
+    }
+  }, [])
 
   const settings = useQuery({
     queryKey: ['settings'],
@@ -121,31 +130,44 @@ export function useMediaUpload({ onPictureUpdate, currentCount }: Options) {
 
       // 以 pending 态入列，保持选择顺序与九宫格位置
       const stamp = Date.now()
-      const placeholders: PictureItem[] = accepted.map((file, i) => ({
-        uid: `u_${stamp}_${i}`,
-        url: URL.createObjectURL(file),
-        alt: file.name,
-        status: 'pending',
-        percent: 0,
-      }))
+      const placeholders: PictureItem[] = accepted.map((file, i) => {
+        const previewUrl = URL.createObjectURL(file)
+        blobUrlsRef.current.add(previewUrl)
+        return {
+          uid: `u_${stamp}_${i}`,
+          url: previewUrl,
+          alt: file.name,
+          status: 'pending',
+          percent: 0,
+        }
+      })
       onAdd(placeholders)
 
-      // 串行上传以保证顺序
-      for (let i = 0; i < accepted.length; i += 1) {
-        const file = accepted[i]
-        const placeholder = placeholders[i]
-        if (!file || !placeholder) continue
-        onPictureUpdate(placeholder.uid, { status: 'uploading', percent: 0 })
-        try {
-          const done = await uploadOne(placeholder.uid, file)
-          onPictureUpdate(placeholder.uid, done)
-          outcome.uploaded.push({ ...done, uid: placeholder.uid })
-        } catch (e) {
-          const reason = e instanceof Error ? e.message : '上传失败'
-          onPictureUpdate(placeholder.uid, { status: 'error', errorMessage: reason })
-          outcome.failed.push({ name: file.name, reason })
-        }
+      const releaseBlob = (url: string) => {
+        if (!url.startsWith('blob:')) return
+        URL.revokeObjectURL(url)
+        blobUrlsRef.current.delete(url)
       }
+
+      // 并发上传后按占位顺序回收，保持九宫格位置稳定
+      await Promise.allSettled(
+        accepted.map(async (file, i) => {
+          const placeholder = placeholders[i]
+          if (!file || !placeholder) return
+          onPictureUpdate(placeholder.uid, { status: 'uploading', percent: 0 })
+          try {
+            const done = await uploadOne(placeholder.uid, file)
+            releaseBlob(placeholder.url)
+            onPictureUpdate(placeholder.uid, done)
+            outcome.uploaded.push({ ...done, uid: placeholder.uid })
+          } catch (e) {
+            const reason = e instanceof Error ? e.message : '上传失败'
+            // 失败时保留 blob 预览，由卸载清理兜底
+            onPictureUpdate(placeholder.uid, { status: 'error', errorMessage: reason })
+            outcome.failed.push({ name: file.name, reason })
+          }
+        }),
+      )
 
       return outcome
     },

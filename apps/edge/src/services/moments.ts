@@ -5,7 +5,6 @@ import { renderMarkdownSafe } from '@taiping/renderer/markdown'
 import { nowIso } from '@taiping/shared-utils'
 import { newId } from '../lib/cache'
 import { enqueueMirror } from '../lib/mirror'
-import { bumpCacheVersion } from '../lib/cache'
 
 interface MomentRow {
   id: string
@@ -113,7 +112,6 @@ export async function createMoment(db: D1Database, input: MomentInput): Promise<
     )
     .run()
   await enqueueMirror(db, 'moment', id, 'upsert')
-  await bumpCacheVersion(db, 'content')
   const created = await getMomentById(db, id)
   if (!created) throw new Error('create moment failed')
   return created
@@ -146,7 +144,6 @@ export async function updateMoment(db: D1Database, id: string, input: MomentInpu
     )
     .run()
   await enqueueMirror(db, 'moment', id, 'upsert')
-  await bumpCacheVersion(db, 'content')
   const updated = await getMomentById(db, id)
   if (!updated) throw new Error('update moment failed')
   return updated
@@ -159,7 +156,6 @@ export async function deleteMoment(db: D1Database, id: string): Promise<void> {
   }
   await db.prepare('DELETE FROM moments WHERE id = ?').bind(id).run()
   await enqueueMirror(db, 'moment', id, 'delete')
-  await bumpCacheVersion(db, 'content')
 }
 
 export async function countMoments(db: D1Database): Promise<{ published: number; draft: number }> {

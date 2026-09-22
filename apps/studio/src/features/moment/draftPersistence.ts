@@ -41,7 +41,7 @@ export function clearDraft(): void {
   try {
     window.localStorage.removeItem(KEY)
   } catch {
-    // 忽略
+    // removeItem 同步失败（隐私模式等）可忽略，下次 save 会覆盖
   }
 }
 

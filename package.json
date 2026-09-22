@@ -14,6 +14,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "pnpm -r test",
+    "theme:sync": "node scripts/sync-theme.mjs",
+    "theme:check": "node scripts/sync-theme.mjs --check",
     "db:migrate:local": "pnpm -F @taiping/edge db:migrate:local"
   },
   "devDependencies": {

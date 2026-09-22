@@ -1,4 +1,12 @@
 import { z } from 'zod'
+import { SLUG_MAX_LEN, SLUG_RE } from '@taiping/shared-utils/slug'
+import { ENCRYPT_PASSWORD_MIN } from './auth'
+import { isSafeResourceUrl } from './url'
+
+const optionalSafeCover = z
+  .string()
+  .refine((s) => s === '' || isSafeResourceUrl(s), '封面仅支持站内路径或 http/https 资源')
+  .optional()
 
 export const postStatusSchema = z.enum(['draft', 'published'])
 export type PostStatus = z.infer<typeof postStatusSchema>
@@ -11,14 +19,14 @@ export const postSchema = z.object({
   slug: z
     .string()
     .min(1)
-    .max(200)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'slug 仅允许小写字母、数字与连字符'),
+    .max(SLUG_MAX_LEN)
+    .regex(SLUG_RE, 'slug 仅允许小写字母、数字与连字符'),
   type: postTypeSchema,
   title: z.string().min(1).max(120),
   contentMd: z.string(),
   contentHtml: z.string().default(''),
   excerpt: z.string().max(500).optional(),
-  cover: z.string().optional(),
+  cover: optionalSafeCover,
   status: postStatusSchema.default('draft'),
   publishedAt: z.string().datetime().optional(),
   readingTime: z.string().optional(),
@@ -40,13 +48,13 @@ export const postInputSchema = z.object({
   title: postSchema.shape.title,
   contentMd: z.string().default(''),
   excerpt: z.string().max(500).optional(),
-  cover: z.string().optional(),
+  cover: optionalSafeCover,
   status: postStatusSchema.default('draft'),
   publishedAt: z.string().datetime().optional(),
   template: z.string().optional(),
   sortOrder: z.number().int().default(0),
   encrypt: z.boolean().default(false),
-  encryptPassword: z.string().min(4).optional(),
+  encryptPassword: z.string().min(ENCRYPT_PASSWORD_MIN).optional(),
   encryptHint: z.string().optional(),
   encryptTitle: z.string().optional(),
   encryptMessage: z.string().optional(),
