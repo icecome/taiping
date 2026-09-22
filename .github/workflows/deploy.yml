@@ -13,9 +13,24 @@ jobs:
   deploy:
     name: 部署到 Cloudflare
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - uses: actions/checkout@v4
+
+      # 缺失密钥时立即给出明确提示，避免 wrangler 报难懂的认证错误
+      - name: 校验密钥配置
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=""
+          [ -z "$CLOUDFLARE_API_TOKEN" ] && missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::缺少仓库 Secret:$missing"
+            echo "请在 Settings → Secrets and variables → Actions → Repository secrets 中添加。"
+            exit 1
+          fi
+          echo "密钥已配置。"
 
       - uses: pnpm/action-setup@v4
         with:
