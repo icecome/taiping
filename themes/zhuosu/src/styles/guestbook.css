@@ -1,4 +1,4 @@
-/* 访客留言（留言页） */
+﻿/* 访客留言（留言页） */
 .guestbook-section {
   max-width: var(--content-width, 720px);
   margin-top: var(--s-6);
@@ -502,4 +502,66 @@
   .guestbook-item {
     padding: var(--s-3, 12px) var(--s-4, 16px);
   }
+}
+/* === 博主回复 / 访客回信（多轮对话）=== */
+.guestbook-replies {
+  margin-top: var(--s-3, 12px);
+  padding-left: var(--s-3, 12px);
+  border-left: 2px solid var(--gb-line, #dddcd8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2, 8px);
+}
+
+.guestbook-reply {
+  padding: var(--s-2, 8px) var(--s-3, 12px);
+  border-radius: var(--r-sm, 6px);
+  background: var(--gb-muted-bg, #ecebe8);
+}
+
+/* 博主回复以品牌色左边框区分；访客回信保持中性 */
+.guestbook-reply--admin {
+  border-left: 3px solid var(--gb-brand, #9b2226);
+}
+
+.guestbook-reply--email {
+  border-left: 3px solid var(--color-ink-3, #9a978b);
+}
+
+.guestbook-reply-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2, 8px);
+  margin-bottom: 4px;
+}
+
+.guestbook-reply-label {
+  font-size: var(--text-caption, 12px);
+  letter-spacing: 0.06em;
+  color: var(--color-brand, #9b2226);
+}
+
+.guestbook-reply--email .guestbook-reply-label {
+  color: var(--color-ink-3, #9a978b);
+}
+
+.guestbook-reply-time {
+  font-size: var(--text-caption, 12px);
+  color: var(--color-ink-3, #9a978b);
+  margin-left: auto;
+}
+
+.guestbook-reply-body {
+  font-size: var(--text-body-sm, 14px);
+  line-height: var(--leading-normal, 1.75);
+  color: var(--color-ink, #33332f);
+  word-break: break-word;
+}
+
+.guestbook-reply-body p {
+  margin: 0 0 var(--s-2, 8px);
+}
+
+.guestbook-reply-body p:last-child {
+  margin-bottom: 0;
 }

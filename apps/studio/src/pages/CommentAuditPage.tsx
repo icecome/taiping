@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MessageSquare, RotateCw, X, Send, Check, Star, Trash2, Search } from 'lucide-react'
 import { api } from '../api/endpoints'
+import { HttpError } from '../api/client'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
@@ -118,11 +119,49 @@ export function CommentAuditPage() {
     }
   }, [drawerOpen])
 
+  const reply = useMutation({
+    mutationFn: ({ id, content }: { id: string; content: string }) =>
+      api.comments.reply(id, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments'] })
+      setReplyText('')
+      toast('回复已发送')
+    },
+    onError: (err) => {
+      toast(err instanceof HttpError ? err.message : '回复失败', 'error')
+    },
+  })
+
+  const removeReply = useMutation({
+    mutationFn: ({ commentId, replyId }: { commentId: string; replyId: string }) =>
+      api.comments.deleteReply(commentId, replyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments'] })
+      toast('回复已删除')
+    },
+    onError: () => toast('删除失败', 'error'),
+  })
+
   const handleReply = () => {
     if (!replyText.trim() || !selectedComment) return
-    // Reply feature uses moderate pattern; pending dedicated reply API
-    toast('回复功能待接入')
-    setReplyText('')
+    reply.mutate({ id: selectedComment.id, content: replyText.trim() })
+  }
+
+  // 回复时间线取自最新查询结果，使增删后无需重新打开抽屉即可刷新
+  const selectedReplies = useMemo(() => {
+    if (!selectedComment) return []
+    const fresh = comments.data?.items.find((it) => it.id === selectedComment.id)
+    return fresh?.replies ?? []
+  }, [comments.data, selectedComment])
+
+  const handleDeleteReply = async (commentId: string, replyId: string) => {
+    const ok = await confirmDialog({
+      title: '删除这条回复？',
+      description: '删除后无法恢复。',
+      confirmLabel: '删除',
+      danger: true,
+    })
+    if (ok) removeReply.mutate({ commentId, replyId })
   }
 
   const handleModerate = async (id: string, action: string, confirmMsg?: string) => {
@@ -418,6 +457,40 @@ export function CommentAuditPage() {
                 </div>
               </div>
             </div>
+
+            {/* 回复时间线：博主回复与访客回信按时间交替 */}
+            {selectedReplies.map((item) => (
+              <div key={item.id} className="flex gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground shrink-0 mt-0.5">
+                  {item.replyType === '博主' ? <Send size={12} /> : getInitial(item.replyFromEmail)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-medium text-foreground">
+                      {item.replyType === '博主' ? '博主' : item.replyFromEmail}
+                    </span>
+                    <Badge tone={item.replyType === '博主' ? 'success' : 'info'}>
+                      {item.replyType}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {formatDateTime(item.createdAt)}
+                    </span>
+                    {item.replyType === '博主' ? (
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                        onClick={() => handleDeleteReply(selectedComment.id, item.id)}
+                      >
+                        删除
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="bg-card border border-border rounded-sm rounded-tl-none px-3 py-2 text-sm text-foreground whitespace-pre-wrap">
+                    {item.contentMd}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Reply input area */}

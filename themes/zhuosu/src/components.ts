@@ -205,6 +205,13 @@ export function CommentList(comments: Array<{
   createdAt: string
   isFeatured?: boolean
   website?: string
+  replies?: Array<{
+    id: string
+    contentHtml: string
+    replyType: string
+    replyFromEmail: string
+    createdAt: string
+  }>
 }>, sourceLabel?: string) {
   if (!comments.length) {
     return html`<div class="guestbook-empty">暂无留言</div>`
@@ -221,6 +228,19 @@ export function CommentList(comments: Array<{
           <time class="guestbook-item-time" datetime="${c.createdAt}">${formatDate(c.createdAt, 'YYYY-MM-DD HH:mm')}</time>
         </div>
         <div class="guestbook-item-body">${raw(c.contentHtml)}</div>
+        ${c.replies?.length
+          ? html`<div class="guestbook-replies">
+              ${c.replies.map(
+                (r) => html`<div class="guestbook-reply guestbook-reply--${r.replyType === '博主' ? 'admin' : 'email'}">
+                  <div class="guestbook-reply-head">
+                    <span class="guestbook-reply-label">${r.replyType}</span>
+                    <time class="guestbook-reply-time" datetime="${r.createdAt}">${formatDate(r.createdAt, 'YYYY-MM-DD HH:mm')}</time>
+                  </div>
+                  <div class="guestbook-reply-body">${raw(r.contentHtml)}</div>
+                </div>`,
+              )}
+            </div>`
+          : ''}
       </article>`,
     )}
   </div>`

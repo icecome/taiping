@@ -1,7 +1,7 @@
 import { http, postWithProgress } from './client'
 import type { Post, PostInput } from '@taiping/content-model/post'
 import type { Paginated } from '@taiping/content-model/api'
-import type { Comment } from '@taiping/content-model/comment'
+import type { Comment, CommentReply } from '@taiping/content-model/comment'
 import type { Moment } from '@taiping/content-model/moment'
 import type { SiteSettings } from '@taiping/content-model/settings'
 import type { Term } from '@taiping/content-model/term'
@@ -74,10 +74,18 @@ export const api = {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== '') qs.set(key, String(value))
       })
-      return http.get<Paginated<Comment>>(`/api/admin/comments?${qs.toString()}`)
+      return http.get<Paginated<Comment & { replies: CommentReply[] }>>(
+        `/api/admin/comments?${qs.toString()}`,
+      )
     },
     moderate: (id: string, action: string) =>
       http.patch<{ action: string }>(`/api/admin/comments/${id}`, { action }),
+    reply: (commentId: string, content: string) =>
+      http.post<CommentReply>(`/api/admin/comments/${commentId}/reply`, { content }),
+    updateReply: (commentId: string, replyId: string, content: string) =>
+      http.patch<CommentReply>(`/api/admin/comments/${commentId}/reply/${replyId}`, { content }),
+    deleteReply: (commentId: string, replyId: string) =>
+      http.delete<{ deleted: boolean }>(`/api/admin/comments/${commentId}/reply/${replyId}`),
   },
   terms: {
     list: (type?: string) =>

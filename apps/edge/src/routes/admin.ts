@@ -1,7 +1,11 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { postListQuerySchema, postInputSchema } from '@taiping/content-model/post'
-import { commentListQuerySchema, commentModerateSchema } from '@taiping/content-model/comment'
+import {
+  commentListQuerySchema,
+  commentModerateSchema,
+  commentReplyInputSchema,
+} from '@taiping/content-model/comment'
 import { momentInputSchema, momentListQuerySchema } from '@taiping/content-model/moment'
 import { siteSettingsSchema } from '@taiping/content-model/settings'
 import { termInputSchema, termUpdateSchema } from '@taiping/content-model/term'
@@ -44,6 +48,10 @@ import {
   countComments,
   listComments,
   moderateComment,
+  listRepliesForComments,
+  addAdminReply,
+  updateAdminReply,
+  deleteReply,
 } from '../services/comments'
 import {
   countMoments,
@@ -318,7 +326,16 @@ admin.get('/comments', async (c) => {
   if (!parsed.success) {
     return jsonFail(c, 'VALIDATION_FAILED', '查询参数不合法', zodDetails(parsed.error))
   }
-  return jsonOk(c, await listComments(c.env.DB, parsed.data))
+  const page = await listComments(c.env.DB, parsed.data)
+  // 附带回复时间线，避免前端逐条请求
+  const replies = await listRepliesForComments(
+    c.env.DB,
+    page.items.map((item) => item.id),
+  )
+  return jsonOk(c, {
+    ...page,
+    items: page.items.map((item) => ({ ...item, replies: replies.get(item.id) ?? [] })),
+  })
 })
 
 admin.patch('/comments/:id', async (c) => {
@@ -329,6 +346,68 @@ admin.patch('/comments/:id', async (c) => {
   }
   await moderateComment(c.env.DB, c.req.param('id'), parsed.data.action)
   return jsonOk(c, { action: parsed.data.action })
+})
+
+// --- comment replies ---
+
+admin.post('/comments/:id/reply', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  const parsed = commentReplyInputSchema.safeParse(body)
+  if (!parsed.success) {
+    return jsonFail(c, 'VALIDATION_FAILED', '回复内容不合法', zodDetails(parsed.error))
+  }
+  try {
+    const { reply, notify } = await addAdminReply(
+      c.env.DB,
+      c.env,
+      c.req.param('id'),
+      parsed.data.content,
+    )
+    // 邮件失败不阻塞回复落库（mail 层已记录日志）
+    if (notify) c.executionCtx.waitUntil(notify)
+    return jsonOk(c, reply)
+  } catch (err) {
+    const code = (err as { code?: string }).code
+    if (code === 'NOT_FOUND') return jsonFail(c, 'NOT_FOUND', '评论不存在')
+    if (code === 'VALIDATION_FAILED') return jsonFail(c, 'VALIDATION_FAILED', '回复内容不能为空')
+    throw err
+  }
+})
+
+admin.patch('/comments/:id/reply/:replyId', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  const parsed = commentReplyInputSchema.safeParse(body)
+  if (!parsed.success) {
+    return jsonFail(c, 'VALIDATION_FAILED', '回复内容不合法', zodDetails(parsed.error))
+  }
+  try {
+    return jsonOk(
+      c,
+      await updateAdminReply(
+        c.env.DB,
+        c.req.param('id'),
+        c.req.param('replyId'),
+        parsed.data.content,
+      ),
+    )
+  } catch (err) {
+    const code = (err as { code?: string }).code
+    if (code === 'NOT_FOUND') return jsonFail(c, 'NOT_FOUND', '回复不存在')
+    if (code === 'FORBIDDEN') return jsonFail(c, 'FORBIDDEN', '访客回信不可编辑')
+    if (code === 'VALIDATION_FAILED') return jsonFail(c, 'VALIDATION_FAILED', '回复内容不能为空')
+    throw err
+  }
+})
+
+admin.delete('/comments/:id/reply/:replyId', async (c) => {
+  try {
+    await deleteReply(c.env.DB, c.req.param('id'), c.req.param('replyId'))
+    return jsonOk(c, { deleted: true })
+  } catch (err) {
+    const code = (err as { code?: string }).code
+    if (code === 'NOT_FOUND') return jsonFail(c, 'NOT_FOUND', '回复不存在')
+    throw err
+  }
 })
 
 // --- taxonomy ---

@@ -6,7 +6,7 @@ import { buildSearchDocs, filterSearchDocs } from '@taiping/renderer/search'
 import type { AppEnv } from '../lib/http'
 import { jsonFail, jsonOk, zodDetails } from '../lib/http'
 import { getPublishedPosts, getPostBySlug } from '../services/posts'
-import { createComment, listPublicComments } from '../services/comments'
+import { createComment, listPublicCommentsWithReplies } from '../services/comments'
 import { listPublishedMoments } from '../services/moments'
 import { hashIp, verifyPassword } from '../lib/crypto'
 import { signUnlockToken, unlockCookieName } from '../services/auth'
@@ -102,7 +102,7 @@ api.get('/comments', async (c) => {
   if (!['guestbook', 'post', 'moment'].includes(targetType)) {
     return jsonFail(c, 'VALIDATION_FAILED', 'targetType 不合法')
   }
-  const items = await listPublicComments(
+  const items = await listPublicCommentsWithReplies(
     c.env.DB,
     targetType as 'guestbook' | 'post' | 'moment',
     targetId,

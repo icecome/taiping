@@ -91,6 +91,8 @@ jobs:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM: ${{ vars.RESEND_FROM }}
+          RESEND_WEBHOOK_SECRET: ${{ secrets.RESEND_WEBHOOK_SECRET }}
+          INBOUND_REPLY_DOMAIN: ${{ vars.INBOUND_REPLY_DOMAIN }}
           ADMIN_PATH: ${{ vars.ADMIN_PATH }}
         run: |
           if [ -z "$SESSION_SECRET" ]; then
@@ -105,6 +107,8 @@ jobs:
             if (process.env.ADMIN_PASSWORD) p.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
             if (process.env.RESEND_API_KEY) p.RESEND_API_KEY = process.env.RESEND_API_KEY;
             if (process.env.RESEND_FROM) p.RESEND_FROM = process.env.RESEND_FROM;
+            if (process.env.RESEND_WEBHOOK_SECRET) p.RESEND_WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET;
+            if (process.env.INBOUND_REPLY_DOMAIN) p.INBOUND_REPLY_DOMAIN = process.env.INBOUND_REPLY_DOMAIN;
             if (process.env.ADMIN_PATH) p.ADMIN_PATH = process.env.ADMIN_PATH;
             process.stdout.write(JSON.stringify(p));
           ' > /tmp/secrets.json
@@ -112,7 +116,8 @@ jobs:
           rm -f /tmp/secrets.json
           echo "已注入：SESSION_SECRET"
           if [ -n "$ADMIN_PASSWORD" ]; then echo "  含播种用 ADMIN_*"; fi
-          if [ -n "$RESEND_API_KEY" ]; then echo "  含 RESEND_*（口令重置邮件可用）"; fi
+          if [ -n "$RESEND_API_KEY" ]; then echo "  含 RESEND_*（邮件通知可用）"; fi
+          if [ -n "$RESEND_WEBHOOK_SECRET" ]; then echo "  含 RESEND_WEBHOOK_SECRET（访客回信可用）"; fi
           if [ -n "$ADMIN_PATH" ]; then echo "  含 ADMIN_PATH=$ADMIN_PATH"; fi
 
       - name: 部署失败时输出诊断

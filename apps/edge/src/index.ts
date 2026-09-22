@@ -5,6 +5,7 @@ import type { AppEnv } from './lib/http'
 import publicRoutes from './routes/public'
 import adminRoutes from './routes/admin'
 import apiRoutes from './routes/api'
+import inboundRoutes from './routes/inbound'
 import { processMirrorQueue } from './services/mirror'
 import { pruneAttempts } from './services/authAttempts'
 import { assertEnv, adminPath, warnEnvOnce } from './env'
@@ -48,6 +49,8 @@ app.get('/admin/*', (c) => {
 
 app.route('/api/admin', adminRoutes)
 app.route('/api', apiRoutes)
+// 入站回信挂 /api/inbound/*，由 webhook 验签保护（无会话鉴权）
+app.route('/api', inboundRoutes)
 app.route('/', publicRoutes)
 
 // 自定义后台路径：必须最后注册，避免抢在 API 与前台路由之前匹配

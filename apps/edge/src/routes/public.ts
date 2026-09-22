@@ -17,7 +17,7 @@ import type { AppEnv } from '../lib/http'
 import type { AppContext } from '../lib/http'
 import { getSettings } from '../lib/settings'
 import { getPostBySlug, getPostTerms, getPublishedPosts } from '../services/posts'
-import { listPublicComments } from '../services/comments'
+import { listPublicCommentsWithReplies } from '../services/comments'
 import { listPublishedMoments } from '../services/moments'
 import { getTermBySlug, listTerms, listPostsByTermSlug } from '../services/terms'
 import { verifyUnlockToken, unlockCookieName } from '../services/auth'
@@ -128,7 +128,7 @@ publicRoutes.get('/pages/:slug', async (c) => {
   if (!post || post.status !== 'published') {
     return c.html(renderNotFound({ settings, path: c.req.path, title: '页面不存在' }), 404)
   }
-  const comments = await listPublicComments(c.env.DB, 'post', post.id)
+  const comments = await listPublicCommentsWithReplies(c.env.DB, 'post', post.id)
   return c.html(
     renderPage({
       settings,
@@ -199,7 +199,7 @@ publicRoutes.get('/moments', async (c) => {
 
 publicRoutes.get('/guestbook', async (c) => {
   const settings = await getSettings(c.env.DB)
-  const comments = await listPublicComments(c.env.DB, 'guestbook', 'guestbook', {
+  const comments = await listPublicCommentsWithReplies(c.env.DB, 'guestbook', 'guestbook', {
     featuredOnly: false,
   })
   return c.html(

@@ -26,6 +26,8 @@ const FONT =
 export interface MailEnv {
   RESEND_API_KEY?: string
   RESEND_FROM?: string
+  /** 回信接收域名：Reply-To 形如 reply+<token>@<domain> */
+  INBOUND_REPLY_DOMAIN?: string
 }
 
 export function isMailConfigured(env: MailEnv): boolean {
@@ -149,5 +151,48 @@ export async function sendPasswordResetEmail(
       html: emailShell('PASSWORD RESET', '重置后台管理口令', body),
     },
     '口令重置邮件',
+  )
+}
+
+/** 评论回复通知邮件。replyTo 配置后访客可直接回信形成多轮对话 */
+export async function sendCommentReplyEmail(
+  env: MailEnv,
+  to: string,
+  replyContent: string,
+  originalContent: string,
+  pageTitle: string,
+  pageUrl: string,
+  siteTitle: string,
+  replyToken: string,
+): Promise<boolean> {
+  const canReply = Boolean(env.INBOUND_REPLY_DOMAIN && replyToken)
+  const replyTo = canReply ? `reply+${replyToken}@${env.INBOUND_REPLY_DOMAIN}` : undefined
+
+  const truncate = (s: string, n = 200) => (s.length > n ? `${s.slice(0, n)}…` : s)
+
+  const body =
+    field('你的留言', escapeHtml(truncate(originalContent))) +
+    field('博主回复', escapeHtml(replyContent)) +
+    field(
+      '原文',
+      `<a href="${escapeHtml(pageUrl)}" style="color:${PALETTE.brand};text-decoration:underline;">${escapeHtml(pageTitle)}</a>`,
+    ) +
+    (canReply
+      ? field(
+          '继续交流',
+          `<span style="color:${PALETTE.ink2};">直接回复本邮件即可，内容会展示在原留言处。</span>`,
+        )
+      : '')
+
+  return sendViaResend(
+    env,
+    {
+      from: env.RESEND_FROM,
+      to: [to],
+      ...(replyTo ? { reply_to: replyTo } : {}),
+      subject: `【${siteTitle}】你的留言收到了回复`,
+      html: emailShell('REPLY', '你的留言收到了回复', body),
+    },
+    '评论回复邮件',
   )
 }

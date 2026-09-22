@@ -10,10 +10,15 @@ ADMIN_PASSWORD=change-me
 GITHUB_TOKEN=
 GITHUB_MIRROR_REPO=
 
-# 可选：邮件通知（Resend）— 口令重置与后续通知所需
+# 可选：邮件通知（Resend）— 评论回复通知与口令重置所需
 # 未配置时相关流程降级为「跳过发信」而非报错
 RESEND_API_KEY=
 RESEND_FROM=
+
+# 可选：访客直接回信（多轮对话）
+# 需在 Resend 配置域名 MX 与 webhook，未配置时入站端点一律拒绝
+INBOUND_REPLY_DOMAIN=
+RESEND_WEBHOOK_SECRET=
 
 # 可选：后台入口路径，默认 /admin。改动后旧路径即失效
 # ADMIN_PATH=/admin

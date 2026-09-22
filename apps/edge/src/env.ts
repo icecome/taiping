@@ -13,6 +13,9 @@ export interface Env {
   /** 邮件发送（Resend）：未配置时跳过发信，相关流程降级而非失败 */
   RESEND_API_KEY?: string
   RESEND_FROM?: string
+  /** 回信接收域名与 webhook 验签密钥：未配置时入站端点一律拒绝 */
+  INBOUND_REPLY_DOMAIN?: string
+  RESEND_WEBHOOK_SECRET?: string
   /** 后台入口路径，默认 /admin */
   ADMIN_PATH?: string
 }
