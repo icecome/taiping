@@ -39,7 +39,10 @@ function createMockDb() {
             return { meta: { changes: 1 } }
           }
           if (sql.includes('INSERT INTO admins')) {
-            // 并发首注保护：已有管理员时 WHERE NOT EXISTS 分支不落库
+            // 并发首注保护：已有管理员时 COUNT 守卫分支不落库
+            if (sql.includes('COUNT(*)') && admins.size > 0) {
+              return { meta: { changes: 0 } }
+            }
             if (sql.includes('WHERE NOT EXISTS') && admins.size > 0) {
               return { meta: { changes: 0 } }
             }

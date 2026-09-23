@@ -2,7 +2,7 @@ import type { D1Database } from '@cloudflare/workers-types'
 import type { Env } from '../env'
 import type { Admin } from '@taiping/content-model/auth'
 import { hashPassword, hmacSign, hmacVerify, verifyPassword, timingSafeEqual } from '../lib/crypto'
-import { checkLoginAllowed, hashClientIp, recordAttempt } from './authAttempts'
+import { checkLoginAllowed, hashClientIp, recordAttempt, type LoginBlockReason } from './authAttempts'
 import { newId } from '../lib/cache'
 import { readCookie } from '../lib/cookie'
 import { nowIso, randomToken } from '@taiping/shared-utils'
@@ -69,7 +69,7 @@ export async function isBootstrapRequired(db: D1Database): Promise<boolean> {
 
 /**
  * 首次初始化注册：仅当 admins 表为空时创建唯一管理员，并直接签发会话。
- * 使用 INSERT ... WHERE NOT EXISTS 降低并发首注重复建号的风险。
+ * 限流表异常时降级放行（不阻断建号）；插入用 COUNT 守卫降低并发首注风险。
  */
 export async function registerAdmin(
   db: D1Database,
@@ -88,7 +88,12 @@ export async function registerAdmin(
     secret: env.SESSION_SECRET,
   }
 
-  const blocked = await checkLoginAllowed(ctx)
+  let blocked: LoginBlockReason | null = null
+  try {
+    blocked = await checkLoginAllowed(ctx)
+  } catch (err) {
+    console.error('[auth] 注册限流检查失败，已放行', err)
+  }
   if (blocked) {
     console.warn(`[auth] 注册被限流 reason=${blocked} username=${username}`)
     throw Object.assign(new Error('too many attempts'), {
@@ -98,7 +103,7 @@ export async function registerAdmin(
 
   const existing = await getAdmin(db)
   if (existing) {
-    await recordAttempt(ctx, false)
+    await safeRecordAttempt(ctx, false)
     console.warn('[auth] 注册拒绝：系统已有管理员')
     throw Object.assign(new Error('admin already exists'), { code: 'SETUP_ALREADY_DONE' })
   }
@@ -106,25 +111,47 @@ export async function registerAdmin(
   const passwordHash = await hashPassword(password)
   const now = nowIso()
   const id = newId('adm')
-  const result = await db
-    .prepare(
-      `INSERT INTO admins (id, username, password_hash, created_at, updated_at)
-       SELECT ?, ?, ?, ?, ?
-       WHERE NOT EXISTS (SELECT 1 FROM admins)`,
-    )
-    .bind(id, username, passwordHash, now, now)
-    .run()
-
-  const changes = result?.meta?.changes ?? 0
-  if (!changes) {
-    await recordAttempt(ctx, false)
-    console.warn('[auth] 注册拒绝：并发初始化已完成')
-    throw Object.assign(new Error('admin already exists'), { code: 'SETUP_ALREADY_DONE' })
+  try {
+    const result = await db
+      .prepare(
+        `INSERT INTO admins (id, username, password_hash, created_at, updated_at)
+         SELECT ?, ?, ?, ?, ?
+         WHERE (SELECT COUNT(*) FROM admins) = 0`,
+      )
+      .bind(id, username, passwordHash, now, now)
+      .run()
+    const changes = result?.meta?.changes ?? 0
+    if (!changes) {
+      await safeRecordAttempt(ctx, false)
+      console.warn('[auth] 注册拒绝：并发初始化已完成')
+      throw Object.assign(new Error('admin already exists'), { code: 'SETUP_ALREADY_DONE' })
+    }
+  } catch (err) {
+    if ((err as { code?: string }).code === 'SETUP_ALREADY_DONE') throw err
+    console.error('[auth] 注册写入失败', err)
+    await safeRecordAttempt(ctx, false)
+    const message = err instanceof Error ? err.message : String(err)
+    if (/unique|constraint|SQLITE_CONSTRAINT/i.test(message)) {
+      throw Object.assign(new Error('admin already exists'), { code: 'SETUP_ALREADY_DONE' })
+    }
+    throw err
   }
 
-  await recordAttempt(ctx, true)
+  await safeRecordAttempt(ctx, true)
   console.log(`[auth] 管理员注册成功 username=${username} id=${id}`)
   return issueSession(db, env, userAgent, trusted, isSecureRequest)
+}
+
+/** 限流审计失败不阻断主流程，仅记日志 */
+async function safeRecordAttempt(
+  ctx: { db: D1Database; ipHash: string; username: string; secret: string },
+  success: boolean,
+): Promise<void> {
+  try {
+    await recordAttempt(ctx, success)
+  } catch (err) {
+    console.error('[auth] 记录登录尝试失败', err)
+  }
 }
 
 async function issueSession(
