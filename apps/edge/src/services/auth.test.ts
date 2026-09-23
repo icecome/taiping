@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { changeAdminPassword, getAdmin, login, seedAdminIfEmpty, validateSession } from './auth'
+import {
+  changeAdminPassword,
+  getAdmin,
+  isBootstrapRequired,
+  login,
+  registerAdmin,
+  seedAdminIfEmpty,
+  validateSession,
+} from './auth'
 import type { Env } from '../env'
 import type { D1Database } from '@cloudflare/workers-types'
 
@@ -23,10 +31,23 @@ function createMockDb() {
         async run() {
           if (sql.includes('INSERT INTO sessions')) {
             sessions.set(String(args[0]), String(args[2]))
-          } else if (sql.includes('DELETE FROM sessions')) {
+            return { meta: { changes: 1 } }
+          }
+          if (sql.includes('DELETE FROM sessions')) {
             if (args.length) sessions.delete(String(args[0]))
             else sessions.clear()
-          } else if (sql.includes('INSERT INTO admins')) {
+            return { meta: { changes: 1 } }
+          }
+          if (sql.includes('INSERT INTO admins')) {
+            // 并发首注保护：已有管理员时 WHERE NOT EXISTS 分支不落库
+            if (sql.includes('WHERE NOT EXISTS') && admins.size > 0) {
+              return { meta: { changes: 0 } }
+            }
+            for (const record of admins.values()) {
+              if (record.username === String(args[1])) {
+                return { meta: { changes: 0 } }
+              }
+            }
             admins.set(String(args[0]), {
               id: String(args[0]),
               username: String(args[1]),
@@ -34,12 +55,17 @@ function createMockDb() {
               created_at: String(args[3]),
               updated_at: String(args[4]),
             })
-          } else if (sql.includes('UPDATE admins')) {
+            return { meta: { changes: 1 } }
+          }
+          if (sql.includes('UPDATE admins')) {
             const target = admins.get(String(args[2]))
             if (target) {
-              target.password_hash = String(args[0])
-              target.updated_at = String(args[1])
+              if (sql.includes('password_hash')) {
+                target.password_hash = String(args[0])
+                target.updated_at = String(args[1])
+              }
             }
+            return { meta: { changes: 1 } }
           }
           return { meta: { changes: 1 } }
         },
@@ -166,5 +192,61 @@ describe('changeAdminPassword', () => {
     // 新口令可用
     const result = await login(db, env, 'admin', 'new-password-1', undefined, false, false)
     expect(result.cookie).toContain('tp_session=')
+  })
+})
+
+describe('registerAdmin bootstrap', () => {
+  it('reports bootstrap required only when admins is empty', async () => {
+    const db = createMockDb()
+    expect(await isBootstrapRequired(db)).toBe(true)
+    await registerAdmin(db, env, 'owner', 'new-password-1', undefined, true, false)
+    expect(await isBootstrapRequired(db)).toBe(false)
+  })
+
+  it('creates the first admin and issues a session', async () => {
+    const db = createMockDb()
+    const result = await registerAdmin(
+      db,
+      env,
+      'owner',
+      'new-password-1',
+      'test-agent',
+      true,
+      false,
+    )
+    expect(result.cookie.startsWith('tp_session=')).toBe(true)
+    const admin = await getAdmin(db)
+    expect(admin?.username).toBe('owner')
+    // 口令应为哈希而非明文
+    expect(admin).not.toHaveProperty('password_hash')
+    const cookieHeader = result.cookie.split(';')[0]
+    const sessionId = await validateSession(db, env, cookieHeader)
+    expect(sessionId).toBe(result.sessionId)
+  })
+
+  it('rejects registration after an admin already exists', async () => {
+    const db = createMockDb()
+    await registerAdmin(db, env, 'owner', 'new-password-1', undefined, true, false)
+    await expect(
+      registerAdmin(db, env, 'intruder', 'new-password-2', undefined, true, false),
+    ).rejects.toMatchObject({ code: 'SETUP_ALREADY_DONE' })
+    const admin = await getAdmin(db)
+    expect(admin?.username).toBe('owner')
+  })
+
+  it('does not replace a seeded admin', async () => {
+    const db = createMockDb()
+    await seedAdminIfEmpty(db, env)
+    await expect(
+      registerAdmin(db, env, 'owner', 'new-password-1', undefined, true, false),
+    ).rejects.toMatchObject({ code: 'SETUP_ALREADY_DONE' })
+  })
+
+  it('hashes the password at rest', async () => {
+    const db = createMockDb()
+    await registerAdmin(db, env, 'owner', 'super-secret-9', undefined, true, false)
+    await expect(
+      login(db, env, 'owner', 'super-secret-9', undefined, false, false),
+    ).resolves.toMatchObject({ cookie: expect.stringContaining('tp_session=') })
   })
 })

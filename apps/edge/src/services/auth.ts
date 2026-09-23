@@ -40,6 +40,7 @@ export async function getAdmin(db: D1Database): Promise<Admin | null> {
 /**
  * 首次播种：admins 表为空时，用环境变量创建唯一管理员。
  * 播种后环境变量不再参与登录校验，可自行清除。
+ * 未配置环境变量时返回 null，改走 /auth/register 初始化。
  */
 export async function seedAdminIfEmpty(db: D1Database, env: Env): Promise<Admin | null> {
   const existing = await getAdmin(db)
@@ -56,7 +57,102 @@ export async function seedAdminIfEmpty(db: D1Database, env: Env): Promise<Admin 
     )
     .bind(id, env.ADMIN_USERNAME, passwordHash, now, now)
     .run()
+  console.log(`[auth] 环境变量首次播种管理员 username=${env.ADMIN_USERNAME} id=${id}`)
   return { id, username: env.ADMIN_USERNAME, createdAt: now, updatedAt: now }
+}
+
+/** 系统是否仍待初始化（尚无管理员） */
+export async function isBootstrapRequired(db: D1Database): Promise<boolean> {
+  const admin = await getAdmin(db)
+  return admin === null
+}
+
+/**
+ * 首次初始化注册：仅当 admins 表为空时创建唯一管理员，并直接签发会话。
+ * 使用 INSERT ... WHERE NOT EXISTS 降低并发首注重复建号的风险。
+ */
+export async function registerAdmin(
+  db: D1Database,
+  env: Env,
+  username: string,
+  password: string,
+  userAgent: string | undefined,
+  trusted: boolean,
+  isSecureRequest: boolean,
+  clientIp?: string,
+): Promise<{ sessionId: string; expiresAt: string; cookie: string }> {
+  const ctx = {
+    db,
+    ipHash: await hashClientIp(clientIp ?? '', env.SESSION_SECRET),
+    username,
+    secret: env.SESSION_SECRET,
+  }
+
+  const blocked = await checkLoginAllowed(ctx)
+  if (blocked) {
+    console.warn(`[auth] 注册被限流 reason=${blocked} username=${username}`)
+    throw Object.assign(new Error('too many attempts'), {
+      code: blocked === 'account' ? 'ACCOUNT_LOCKED' : 'RATE_LIMITED',
+    })
+  }
+
+  const existing = await getAdmin(db)
+  if (existing) {
+    await recordAttempt(ctx, false)
+    console.warn('[auth] 注册拒绝：系统已有管理员')
+    throw Object.assign(new Error('admin already exists'), { code: 'SETUP_ALREADY_DONE' })
+  }
+
+  const passwordHash = await hashPassword(password)
+  const now = nowIso()
+  const id = newId('adm')
+  const result = await db
+    .prepare(
+      `INSERT INTO admins (id, username, password_hash, created_at, updated_at)
+       SELECT ?, ?, ?, ?, ?
+       WHERE NOT EXISTS (SELECT 1 FROM admins)`,
+    )
+    .bind(id, username, passwordHash, now, now)
+    .run()
+
+  const changes = result?.meta?.changes ?? 0
+  if (!changes) {
+    await recordAttempt(ctx, false)
+    console.warn('[auth] 注册拒绝：并发初始化已完成')
+    throw Object.assign(new Error('admin already exists'), { code: 'SETUP_ALREADY_DONE' })
+  }
+
+  await recordAttempt(ctx, true)
+  console.log(`[auth] 管理员注册成功 username=${username} id=${id}`)
+  return issueSession(db, env, userAgent, trusted, isSecureRequest)
+}
+
+async function issueSession(
+  db: D1Database,
+  env: Env,
+  userAgent: string | undefined,
+  trusted: boolean,
+  isSecureRequest: boolean,
+): Promise<{ sessionId: string; expiresAt: string; cookie: string }> {
+  const sessionId = randomToken()
+  const now = nowIso()
+  const ttl = trusted ? TRUSTED_TTL_MS : DEFAULT_TTL_MS
+  const expMs = Date.now() + ttl
+  const expiresAt = new Date(expMs).toISOString()
+  await db
+    .prepare(
+      `INSERT INTO sessions (id, created_at, expires_at, trusted, user_agent)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .bind(sessionId, now, expiresAt, trusted ? 1 : 0, userAgent ?? null)
+    .run()
+  // cookie 仅使用安全字符，避免解析歧义
+  const payload = `${sessionId}.${expMs}`
+  const sig = await hmacSign(payload, env.SESSION_SECRET)
+  // Secure 标志依据实际请求协议判定，不依赖可配错的站点 URL
+  const secure = isSecureRequest ? '; Secure' : ''
+  const cookie = `${COOKIE_NAME}=${payload}.${sig}; Path=/; HttpOnly${secure}; SameSite=Lax; Max-Age=${Math.floor(ttl / 1000)}`
+  return { sessionId, expiresAt, cookie }
 }
 
 export async function login(
@@ -108,25 +204,7 @@ export async function login(
   }
   await recordAttempt(ctx, true)
 
-  const sessionId = randomToken()
-  const now = nowIso()
-  const ttl = trusted ? TRUSTED_TTL_MS : DEFAULT_TTL_MS
-  const expMs = Date.now() + ttl
-  const expiresAt = new Date(expMs).toISOString()
-  await db
-    .prepare(
-      `INSERT INTO sessions (id, created_at, expires_at, trusted, user_agent)
-       VALUES (?, ?, ?, ?, ?)`,
-    )
-    .bind(sessionId, now, expiresAt, trusted ? 1 : 0, userAgent ?? null)
-    .run()
-  // cookie 仅使用安全字符，避免解析歧义
-  const payload = `${sessionId}.${expMs}`
-  const sig = await hmacSign(payload, env.SESSION_SECRET)
-  // Secure 标志依据实际请求协议判定，不依赖可配错的站点 URL
-  const secure = isSecureRequest ? '; Secure' : ''
-  const cookie = `${COOKIE_NAME}=${payload}.${sig}; Path=/; HttpOnly${secure}; SameSite=Lax; Max-Age=${Math.floor(ttl / 1000)}`
-  return { sessionId, expiresAt, cookie }
+  return issueSession(db, env, userAgent, trusted, isSecureRequest)
 }
 
 /**

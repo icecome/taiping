@@ -63,7 +63,14 @@ export async function request<T>(
 
   if (res.status === 401) {
     // 统一拦截：清空缓存由调用方 QueryClient 处理，这里跳转登录
-    if (!path.includes('/auth/login')) {
+    // 初始化与登录相关公开端点自身失败不应触发跳转
+    const isAuthPublic =
+      path.includes('/auth/login') ||
+      path.includes('/auth/bootstrap') ||
+      path.includes('/auth/register') ||
+      path.includes('/auth/forgot-password') ||
+      path.includes('/auth/reset-password')
+    if (!isAuthPublic) {
       goToLogin()
     }
   }
@@ -135,7 +142,12 @@ export function postWithProgress<T>(
         )
         return
       }
-      if (xhr.status === 401 && !path.includes('/auth/login')) {
+      if (
+        xhr.status === 401 &&
+        !path.includes('/auth/login') &&
+        !path.includes('/auth/bootstrap') &&
+        !path.includes('/auth/register')
+      ) {
         goToLogin()
       }
       if (!json.ok) {

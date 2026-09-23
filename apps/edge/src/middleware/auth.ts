@@ -13,6 +13,9 @@ const AUTH_PUBLIC_PATHS = new Set([
   // 口令重置相关：申请重置与凭令牌重置都需在未登录状态下可用
   '/api/admin/auth/forgot-password',
   '/api/admin/auth/reset-password',
+  // 首次初始化：查询是否待注册 + 提交注册
+  '/api/admin/auth/bootstrap',
+  '/api/admin/auth/register',
 ])
 
 export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {

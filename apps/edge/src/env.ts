@@ -6,8 +6,9 @@ export interface Env {
   MEDIA?: R2Bucket
   ASSETS?: Fetcher
   SESSION_SECRET: string
-  ADMIN_USERNAME: string
-  ADMIN_PASSWORD: string
+  /** 可选：首次播种管理员。未配置时通过 /auth/register 初始化 */
+  ADMIN_USERNAME?: string
+  ADMIN_PASSWORD?: string
   GITHUB_TOKEN?: string
   GITHUB_MIRROR_REPO?: string
   /** 邮件发送（Resend）：未配置时跳过发信，相关流程降级而非失败 */
@@ -22,8 +23,6 @@ export interface Env {
 
 export const REQUIRED_SECRETS = [
   'SESSION_SECRET',
-  'ADMIN_USERNAME',
-  'ADMIN_PASSWORD',
 ] as const
 
 /** 后台入口路径：规范化前后斜杠，非法值回落默认 */
@@ -59,6 +58,18 @@ export function collectEnvProblems(env: Env): string[] {
   }
   if (env.SESSION_SECRET && env.SESSION_SECRET.length > 0 && env.SESSION_SECRET.length < 16) {
     problems.push('SESSION_SECRET must be at least 16 characters')
+  }
+  // 播种凭证成对提供；可整体省略，改走首次注册
+  const adminUser = (env.ADMIN_USERNAME ?? '').trim()
+  const adminPass = (env.ADMIN_PASSWORD ?? '').trim()
+  if (Boolean(adminUser) !== Boolean(adminPass)) {
+    problems.push('ADMIN_USERNAME and ADMIN_PASSWORD must be set together')
+  }
+  if (adminUser && PLACEHOLDER_SECRETS.includes(adminUser)) {
+    problems.push('Env ADMIN_USERNAME still uses a placeholder value')
+  }
+  if (adminPass && PLACEHOLDER_SECRETS.includes(adminPass)) {
+    problems.push('Env ADMIN_PASSWORD still uses a placeholder value')
   }
   return problems
 }

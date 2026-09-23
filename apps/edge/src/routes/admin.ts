@@ -15,6 +15,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   adminEmailSchema,
+  registerSchema,
 } from '@taiping/content-model/auth'
 import { renderMarkdownSafe } from '@taiping/renderer/markdown'
 import type { AppEnv } from '../lib/http'
@@ -31,6 +32,8 @@ import {
   resetPasswordWithToken,
   getAdminEmail,
   setAdminEmail,
+  isBootstrapRequired,
+  registerAdmin,
 } from '../services/auth'
 import { sendPasswordResetEmail } from '../lib/mail'
 import { adminPath } from '../env'
@@ -107,6 +110,47 @@ admin.post('/auth/login', async (c) => {
     }
     if (code === 'ACCOUNT_LOCKED') {
       return jsonFail(c, 'ACCOUNT_LOCKED', '账号已锁定，请通过邮件重置口令')
+    }
+    throw err
+  }
+})
+
+admin.get('/auth/bootstrap', async (c) => {
+  const needsSetup = await isBootstrapRequired(c.env.DB)
+  return jsonOk(c, { needsSetup })
+})
+
+admin.post('/auth/register', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  const parsed = registerSchema.safeParse(body)
+  if (!parsed.success) {
+    return jsonFail(c, 'VALIDATION_FAILED', '参数不合法', zodDetails(parsed.error))
+  }
+  const trusted = body?.trusted === true
+  const clientIp = c.req.header('CF-Connecting-IP') ?? ''
+  try {
+    const result = await registerAdmin(
+      c.env.DB,
+      c.env,
+      parsed.data.username,
+      parsed.data.password,
+      c.req.header('User-Agent'),
+      trusted,
+      new URL(c.req.url).protocol === 'https:',
+      clientIp,
+    )
+    c.header('Set-Cookie', result.cookie)
+    return jsonOk(c, { expiresAt: result.expiresAt, username: parsed.data.username })
+  } catch (err) {
+    const code = (err as { code?: string }).code
+    if (code === 'SETUP_ALREADY_DONE') {
+      return jsonFail(c, 'SETUP_ALREADY_DONE', '系统已初始化，请直接登录')
+    }
+    if (code === 'RATE_LIMITED') {
+      return jsonFail(c, 'RATE_LIMITED', '尝试过于频繁，请稍后再试')
+    }
+    if (code === 'ACCOUNT_LOCKED') {
+      return jsonFail(c, 'ACCOUNT_LOCKED', '尝试过于频繁，请稍后再试')
     }
     throw err
   }

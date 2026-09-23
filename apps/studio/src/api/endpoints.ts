@@ -20,6 +20,14 @@ export interface Overview {
 
 export const api = {
   auth: {
+    bootstrap: () => http.get<{ needsSetup: boolean }>('/api/admin/auth/bootstrap'),
+    register: (input: {
+      username: string
+      password: string
+      confirmPassword: string
+      trusted?: boolean
+    }) =>
+      http.post<{ expiresAt: string; username: string }>('/api/admin/auth/register', input),
     login: (username: string, password: string, trusted = false) =>
       http.post<{ expiresAt: string }>('/api/admin/auth/login', { username, password, trusted }),
     logout: () => http.post<{ ok: true }>('/api/admin/auth/logout'),

@@ -12,6 +12,7 @@ export const apiErrorCodeSchema = z.enum([
   'VALIDATION_FAILED',
   'CONFLICT',
   'RATE_LIMITED',
+  'SETUP_ALREADY_DONE',
   'INTERNAL',
   'MIRROR_PENDING',
 ])
@@ -57,6 +58,7 @@ export const httpStatusByErrorCode: Record<ApiErrorCode, number> = {
   VALIDATION_FAILED: 422,
   CONFLICT: 409,
   RATE_LIMITED: 429,
+  SETUP_ALREADY_DONE: 409,
   INTERNAL: 500,
   MIRROR_PENDING: 200,
 }

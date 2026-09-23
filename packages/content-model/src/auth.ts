@@ -75,3 +75,24 @@ export const adminEmailSchema = z.object({
   email: z.string().email('请输入合法的邮箱地址').max(160),
 })
 export type AdminEmailInput = z.infer<typeof adminEmailSchema>
+
+/**
+ * 首次初始化注册：仅当系统中尚无管理员时可用。
+ * 用户名约束略严于登录，便于新账号可读、可输入。
+ */
+export const registerSchema = z
+  .object({
+    username: z
+      .string()
+      .trim()
+      .min(2, '用户名至少 2 个字符')
+      .max(32, '用户名最多 32 个字符')
+      .regex(/^[a-zA-Z0-9_-]+$/, '用户名仅支持字母、数字、下划线和短横线'),
+    password: z.string().min(NEW_PASSWORD_MIN).max(128),
+    confirmPassword: z.string().min(1).max(128),
+  })
+  .refine((v) => v.password === v.confirmPassword, {
+    message: '两次输入的口令不一致',
+    path: ['confirmPassword'],
+  })
+export type RegisterInput = z.infer<typeof registerSchema>
