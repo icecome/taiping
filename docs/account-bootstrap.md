@@ -55,8 +55,8 @@ flowchart TD
 
 ## 安全说明（建议性）
 
-- 建议生产环境仍配置较强的 `SESSION_SECRET`；`ADMIN_USERNAME`/`ADMIN_PASSWORD` 可选
-- 若使用环境变量播种，建议在首次登录后及时修改口令，并评估是否清除环境变量
+- 建议生产环境仍配置较强的 `SESSION_SECRET`；未配置时 GitHub Actions 部署会**自动生成并注入**（每次部署会轮换，已登录会话失效）。若需跨部署稳定，请自行写入 Repository secret: `SESSION_SECRET`
+- `ADMIN_USERNAME`/`ADMIN_PASSWORD` 可选；未配置时走「初始化管理员」注册
 - 注册接口仅在空库生效；已有管理员后重复调用会返回明确错误，避免被当作开放注册
 - 更完整的暴力破解防护可继续依赖既有登录限流；如需更严策略，可按业务再收紧窗口参数
 

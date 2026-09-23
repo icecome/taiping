@@ -95,11 +95,14 @@ jobs:
           INBOUND_REPLY_DOMAIN: ${{ vars.INBOUND_REPLY_DOMAIN }}
           ADMIN_PATH: ${{ vars.ADMIN_PATH }}
         run: |
+          # SESSION_SECRET 必填但可自动生成：未配置仓库 Secret 时每次部署轮换
+          # （已登录会话会失效）。若希望跨部署保持，请自行写入仓库 Secret。
           if [ -z "$SESSION_SECRET" ]; then
-            echo "::error::缺少仓库 Secret: SESSION_SECRET"
-            echo "请在 Settings → Secrets and variables → Actions → Repository secrets 中添加。"
-            exit 1
+            SESSION_SECRET="$(openssl rand -hex 32)"
+            echo "::warning::未配置仓库 Secret SESSION_SECRET，本次已自动生成并注入。"
+            echo "::warning::重新部署会轮换该值并使已登录会话失效；若需固定值，请写入 Repository secret: SESSION_SECRET。"
           fi
+          export SESSION_SECRET
           node -e '
             const p = { SESSION_SECRET: process.env.SESSION_SECRET };
             // 播种用：库中已有账号时不会再读取，故仅在配置了才注入

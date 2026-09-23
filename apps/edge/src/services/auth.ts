@@ -101,8 +101,7 @@ export async function registerAdmin(
     })
   }
 
-  const existing = await getAdmin(db)
-  if (existing) {
+  if (await getAdmin(db)) {
     await safeRecordAttempt(ctx, false)
     console.warn('[auth] 注册拒绝：系统已有管理员')
     throw Object.assign(new Error('admin already exists'), { code: 'SETUP_ALREADY_DONE' })
