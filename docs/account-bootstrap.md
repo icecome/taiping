@@ -40,7 +40,7 @@ flowchart TD
 | `GET /api/admin/auth/bootstrap` | 公开。返回 `{ needsSetup }`，表示是否尚无管理员 |
 | `POST /api/admin/auth/register` | 公开。仅空库可创建唯一管理员，并直接登录 |
 | 并发保护 | `INSERT ... WHERE NOT EXISTS (SELECT 1 FROM admins)`，降低并发首注重复建号风险 |
-| 口令存储 | 沿用 PBKDF2（`hashPassword`），不存明文。新哈希默认 15 万次迭代（兼顾 Workers CPU 限额）；校验按哈希串内迭代次数，兼容旧哈希 |
+| 口令存储 | 沿用 PBKDF2（`hashPassword`），不存明文。新哈希 10 万次迭代（Workers WebCrypto 上限）；校验按哈希串内迭代次数 |
 | 表单校验 | Zod：用户名 2–32 位（字母/数字/`_`/`-`），口令 ≥ 8 位且两次一致 |
 | 限流 | 复用登录限流（IP / 账号失败计数） |
 | 日志 | 注册成功/拒绝/限流、环境变量播种均输出 `[auth]` 结构化日志（不含口令） |

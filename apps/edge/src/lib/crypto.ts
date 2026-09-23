@@ -2,10 +2,10 @@ const encoder = new TextEncoder()
 
 /**
  * 新口令哈希迭代次数。
- * 600000 在 Cloudflare Workers 上容易超出 CPU 限额导致 500；
- * 校验时仍按哈希串内存储的迭代次数，旧记录不受影响。
+ * Cloudflare Workers 的 WebCrypto 限制 PBKDF2 迭代 ≤ 100000，
+ * 超出会抛 NotSupportedError；校验按哈希串内存储的迭代次数。
  */
-export const PASSWORD_HASH_ITERATIONS = 150_000
+export const PASSWORD_HASH_ITERATIONS = 100_000
 
 export async function hashPassword(password: string, saltHex?: string): Promise<string> {
   const salt = saltHex ? hexToBytes(saltHex) : crypto.getRandomValues(new Uint8Array(16))
