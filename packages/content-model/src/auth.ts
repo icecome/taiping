@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-/** 登录口令下限：兼容历史短口令 */
-export const LOGIN_PASSWORD_MIN = 4
+/** 登录/新建口令下限（统一策略） */
+export const LOGIN_PASSWORD_MIN = 8
 /** 新建/重置口令下限 */
 export const NEW_PASSWORD_MIN = 8
 /** 文章访问密码下限 */

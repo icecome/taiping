@@ -47,6 +47,21 @@ export const api = {
     getEmail: () => http.get<{ email: string }>('/api/admin/auth/email'),
     setEmail: (email: string) =>
       http.patch<{ email: string }>('/api/admin/auth/email', { email }),
+    listSessions: () =>
+      http.get<
+        Array<{
+          id: string
+          createdAt: string
+          expiresAt: string
+          trusted: boolean
+          userAgent?: string
+          current: boolean
+        }>
+      >('/api/admin/auth/sessions'),
+    revokeSession: (id: string) =>
+      http.delete<{ revoked: boolean }>(`/api/admin/auth/sessions/${id}`),
+    revokeOtherSessions: () =>
+      http.post<{ revoked: number }>('/api/admin/auth/sessions/revoke-others'),
   },
   overview: () => http.get<Overview>('/api/admin/overview'),
   posts: {

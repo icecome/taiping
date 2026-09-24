@@ -145,10 +145,81 @@ function ChangePasswordPanel() {
   )
 }
 
+function SessionsPanel() {
+  const queryClient = useQueryClient()
+  const sessions = useQuery({
+    queryKey: ['auth-sessions'],
+    queryFn: () => api.auth.listSessions(),
+  })
+  const revokeOne = useMutation({
+    mutationFn: (id: string) => api.auth.revokeSession(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth-sessions'] })
+      toast('已吊销该会话')
+    },
+    onError: (err) => toast(err instanceof HttpError ? err.message : '吊销失败', 'error'),
+  })
+  const revokeOthers = useMutation({
+    mutationFn: () => api.auth.revokeOtherSessions(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['auth-sessions'] })
+      toast(`已退出其他 ${data.revoked} 个设备`)
+    },
+    onError: (err) => toast(err instanceof HttpError ? err.message : '操作失败', 'error'),
+  })
+
+  return (
+    <Panel title="登录设备" description="吊销可疑会话；当前设备不可吊销自身">
+      <div className="space-y-3 max-w-xl">
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            disabled={revokeOthers.isPending}
+            onClick={() => revokeOthers.mutate()}
+          >
+            退出其他设备
+          </Button>
+        </div>
+        <ul className="space-y-2 text-sm">
+          {(sessions.data ?? []).map((s) => (
+            <li
+              key={s.id}
+              className="flex flex-wrap items-center gap-2 border border-border-subtle rounded-sm px-3 py-2"
+            >
+              <span className="font-medium">{s.current ? '当前设备' : '其他设备'}</span>
+              <span className="text-muted-foreground text-xs">
+                {s.trusted ? '受信 ' : ''}
+                {s.userAgent?.slice(0, 48) || '未知客户端'}
+              </span>
+              <span className="text-muted-foreground text-xs ml-auto">
+                至 {new Date(s.expiresAt).toLocaleString('zh-CN')}
+              </span>
+              {!s.current && (
+                <Button
+                  size="sm"
+                  variant="danger"
+                  disabled={revokeOne.isPending}
+                  onClick={() => revokeOne.mutate(s.id)}
+                >
+                  吊销
+                </Button>
+              )}
+            </li>
+          ))}
+          {sessions.data && sessions.data.length === 0 && (
+            <li className="text-muted-foreground">暂无有效会话</li>
+          )}
+        </ul>
+      </div>
+    </Panel>
+  )
+}
+
 export function PasswordPanel() {
   return (
     <div className="space-y-4">
       <ChangePasswordPanel />
+      <SessionsPanel />
       <RecoveryEmailPanel />
     </div>
   )

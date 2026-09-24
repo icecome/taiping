@@ -319,6 +319,33 @@ export async function createPasswordResetToken(
 
 export type ResetTokenState = 'valid' | 'invalid' | 'expired' | 'used'
 
+/** 忘记口令申请限流标记（写入 auth_attempts.username） */
+const FORGOT_MARKER = '#forgot'
+const FORGOT_MAX_PER_WINDOW = 3
+const FORGOT_WINDOW_MINUTES = 15
+
+export async function checkForgotAllowed(db: D1Database, ipHash: string): Promise<boolean> {
+  const since = new Date(Date.now() - FORGOT_WINDOW_MINUTES * 60_000).toISOString()
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS c FROM auth_attempts
+       WHERE ip_hash = ? AND username = ? AND success = 0 AND created_at >= ?`,
+    )
+    .bind(ipHash, FORGOT_MARKER, since)
+    .first<{ c: number }>()
+  return Number(row?.c ?? 0) < FORGOT_MAX_PER_WINDOW
+}
+
+export async function recordForgotAttempt(db: D1Database, ipHash: string): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO auth_attempts (id, ip_hash, username, success, created_at)
+       VALUES (?, ?, ?, 0, ?)`,
+    )
+    .bind(newId('att'), ipHash, FORGOT_MARKER, nowIso())
+    .run()
+}
+
 export async function inspectResetToken(
   db: D1Database,
   token: string,
@@ -390,13 +417,74 @@ export async function setAdminEmail(db: D1Database, email: string): Promise<void
     .run()
 }
 
-export async function logout(db: D1Database, cookieHeader: string | undefined): Promise<string> {
+function clearSessionCookie(isSecureRequest: boolean): string {
+  const secure = isSecureRequest ? '; Secure' : ''
+  return `${COOKIE_NAME}=; Path=/; HttpOnly${secure}; SameSite=Lax; Max-Age=0`
+}
+
+export async function logout(
+  db: D1Database,
+  cookieHeader: string | undefined,
+  isSecureRequest = true,
+): Promise<string> {
   const parsed = parseSessionCookie(cookieHeader)
-  if (!parsed) {
-    return `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`
+  if (parsed) {
+    await db.prepare('DELETE FROM sessions WHERE id = ?').bind(parsed.sessionId).run()
   }
-  await db.prepare('DELETE FROM sessions WHERE id = ?').bind(parsed.sessionId).run()
-  return `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`
+  return clearSessionCookie(isSecureRequest)
+}
+
+export interface SessionInfo {
+  id: string
+  createdAt: string
+  expiresAt: string
+  trusted: boolean
+  userAgent?: string
+  current: boolean
+}
+
+export async function listSessions(
+  db: D1Database,
+  currentSessionId: string,
+): Promise<SessionInfo[]> {
+  const rows = await db
+    .prepare(
+      `SELECT id, created_at, expires_at, trusted, user_agent FROM sessions
+       WHERE expires_at > ?
+       ORDER BY created_at DESC`,
+    )
+    .bind(nowIso())
+    .all<{ id: string; created_at: string; expires_at: string; trusted: number; user_agent: string | null }>()
+  return rows.results.map((row) => ({
+    id: row.id,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+    trusted: row.trusted === 1,
+    userAgent: row.user_agent ?? undefined,
+    current: row.id === currentSessionId,
+  }))
+}
+
+export async function revokeSession(
+  db: D1Database,
+  sessionId: string,
+  currentSessionId: string,
+): Promise<void> {
+  if (sessionId === currentSessionId) {
+    throw Object.assign(new Error('cannot revoke current session'), { code: 'VALIDATION_FAILED' })
+  }
+  await db.prepare('DELETE FROM sessions WHERE id = ? AND id != ?').bind(sessionId, currentSessionId).run()
+}
+
+export async function revokeOtherSessions(
+  db: D1Database,
+  currentSessionId: string,
+): Promise<number> {
+  const result = await db
+    .prepare('DELETE FROM sessions WHERE id != ?')
+    .bind(currentSessionId)
+    .run()
+  return result.meta.changes ?? 0
 }
 
 export async function validateSession(

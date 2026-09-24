@@ -34,7 +34,13 @@ import {
   setAdminEmail,
   isBootstrapRequired,
   registerAdmin,
+  listSessions,
+  revokeSession,
+  revokeOtherSessions,
+  checkForgotAllowed,
+  recordForgotAttempt,
 } from '../services/auth'
+import { hashClientIp } from '../services/authAttempts'
 import { sendPasswordResetEmail } from '../lib/mail'
 import { adminPath } from '../env'
 import {
@@ -162,9 +168,36 @@ admin.post('/auth/register', async (c) => {
 })
 
 admin.post('/auth/logout', async (c) => {
-  const cookie = await logout(c.env.DB, c.req.header('Cookie'))
+  const cookie = await logout(
+    c.env.DB,
+    c.req.header('Cookie'),
+    new URL(c.req.url).protocol === 'https:',
+  )
   c.header('Set-Cookie', cookie)
   return jsonOk(c, { ok: true })
+})
+
+admin.get('/auth/sessions', async (c) => {
+  const sessionId = c.get('sessionId') ?? ''
+  return jsonOk(c, await listSessions(c.env.DB, sessionId))
+})
+
+admin.delete('/auth/sessions/:id', async (c) => {
+  const sessionId = c.get('sessionId') ?? ''
+  try {
+    await revokeSession(c.env.DB, c.req.param('id'), sessionId)
+    return jsonOk(c, { revoked: true })
+  } catch (err) {
+    const code = (err as { code?: string }).code
+    if (code === 'VALIDATION_FAILED') return jsonFail(c, 'VALIDATION_FAILED', '不能吊销当前会话')
+    throw err
+  }
+})
+
+admin.post('/auth/sessions/revoke-others', async (c) => {
+  const sessionId = c.get('sessionId') ?? ''
+  const revoked = await revokeOtherSessions(c.env.DB, sessionId)
+  return jsonOk(c, { revoked })
 })
 
 admin.get('/auth/me', async (c) => {
@@ -206,6 +239,12 @@ admin.post('/auth/forgot-password', async (c) => {
   }
 
   // 无论账号是否存在、邮箱是否配置，都返回相同结果，避免用户名枚举
+  const clientIp = c.req.header('CF-Connecting-IP') ?? ''
+  const ipHash = await hashClientIp(clientIp, c.env.SESSION_SECRET)
+  if (!(await checkForgotAllowed(c.env.DB, ipHash))) {
+    return jsonFail(c, 'RATE_LIMITED', '尝试过于频繁，请稍后再试')
+  }
+  await recordForgotAttempt(c.env.DB, ipHash)
   const created = await createPasswordResetToken(c.env.DB, c.env)
   if (created) {
     const origin = new URL(c.req.url).origin
@@ -533,8 +572,8 @@ admin.patch('/settings', async (c) => {
   if (!parsed.success) {
     return jsonFail(c, 'VALIDATION_FAILED', '设置校验失败', zodDetails(parsed.error))
   }
-  await saveSettings(c.env.DB, parsed.data)
-  return jsonOk(c, parsed.data)
+  const saved = await saveSettings(c.env.DB, parsed.data)
+  return jsonOk(c, saved)
 })
 
 // --- media ---

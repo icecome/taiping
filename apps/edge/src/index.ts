@@ -8,7 +8,8 @@ import apiRoutes from './routes/api'
 import inboundRoutes from './routes/inbound'
 import { processMirrorQueue } from './services/mirror'
 import { pruneAttempts } from './services/authAttempts'
-import { assertEnv, adminPath, warnEnvOnce } from './env'
+import { assertEnv, adminPath } from './env'
+import { fail } from '@taiping/content-model/api'
 
 const app = new Hono<AppEnv>()
 
@@ -65,7 +66,17 @@ app.get('*', async (c, next) => {
 
 export default {
   async fetch(request: Request, env: AppEnv['Bindings'], ctx: ExecutionContext) {
-    warnEnvOnce(env, (message) => console.error(message))
+    // 密钥缺失/占位时失败闭合，避免空 SESSION_SECRET 静默签发可预测令牌
+    try {
+      assertEnv(env)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'environment misconfigured'
+      console.error('[env]', message)
+      return new Response(
+        JSON.stringify(fail('INTERNAL', '服务未正确配置，请检查环境变量', message)),
+        { status: 503, headers: { 'Content-Type': 'application/json; charset=utf-8' } },
+      )
+    }
     return app.fetch(request, env, ctx)
   },
   scheduled: async (_event: ScheduledEvent, env: AppEnv['Bindings'], ctx: ExecutionContext) => {

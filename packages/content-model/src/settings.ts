@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { isSafeNavUrl } from './url'
+import { createId } from '@taiping/shared-utils'
 
 /** 越界数值钳制到 [min,max]，非法值回落 fallback，避免历史脏数据导致 parse 抛错 */
 function clampInt(min: number, max: number, fallback: number) {
@@ -82,9 +83,9 @@ export type SiteSettings = z.infer<typeof siteSettingsSchema>
 
 export function createMediaConfig(partial: Partial<MediaStorageConfig> = {}): MediaStorageConfig {
   return mediaStorageConfigSchema.parse({
-    id: partial.id || `mc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
-    name: partial.name || '新图床',
+    name: '新图床',
     ...partial,
+    id: partial.id || createId('mc'),
   })
 }
 
@@ -110,7 +111,7 @@ export type SettingGroup =
   | 'media'
 
 export interface SettingFieldMeta {
-  name: string
+  name: keyof SiteSettings & string
   label: string
   group: SettingGroup
   control: SettingControl
