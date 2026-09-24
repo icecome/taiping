@@ -16,7 +16,7 @@
     "@taiping/shared-utils": "workspace:*",
     "@tanstack/react-query": "^5.62.11",
     "lucide-react": "^0.469.0",
-    "overtypeplus": "git+https://github.com/icecome/overtype.git#npm-release",
+    "overtypeplus": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
