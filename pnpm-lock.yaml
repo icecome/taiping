@@ -80,7 +80,7 @@ importers:
         version: 0.469.0(react@19.3.0)
       overtypeplus:
         specifier: git+https://github.com/icecome/overtype.git#npm-release
-        version: git+https://github.com/icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab
+        version: git+https://git@github.com:icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab
       react:
         specifier: ^19.0.0
         version: 19.3.0
@@ -176,6 +176,10 @@ importers:
         version: 2.1.9(@types/node@22.20.3)
 
   packages/shared-utils:
+    dependencies:
+      pinyin-pro:
+        specifier: ^3.29.4
+        version: 3.29.4
     devDependencies:
       typescript:
         specifier: ^5.7.2
@@ -1850,8 +1854,8 @@ packages:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
 
-  overtypeplus@git+https://github.com/icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab:
-    resolution: {commit: 631a248c5583616f4dc8241c78f5cd74c17349ab, repo: https://github.com/icecome/overtype.git, type: git}
+  overtypeplus@git+https://git@github.com:icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab:
+    resolution: {commit: 631a248c5583616f4dc8241c78f5cd74c17349ab, repo: git@github.com:icecome/overtype.git, type: git}
     version: 2.4.0
 
   p-limit@3.1.0:
@@ -1903,6 +1907,9 @@ packages:
   picomatch@4.0.7:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
+
+  pinyin-pro@3.29.4:
+    resolution: {integrity: sha512-SPXpDT2cHEy+d26V1RXYMlVzXN42hotFAak1fzyWPi4o2dKXb61UqD4pzxDJHwk6gbv8vQ6EfErd+hYX0Qhzug==}
 
   pirates@4.0.7:
     resolution: {integrity: sha512-TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA==}
@@ -3854,7 +3861,7 @@ snapshots:
       type-check: 0.4.0
       word-wrap: 1.2.5
 
-  overtypeplus@git+https://github.com/icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab:
+  overtypeplus@git+https://git@github.com:icecome/overtype.git#631a248c5583616f4dc8241c78f5cd74c17349ab:
     dependencies:
       '@floating-ui/dom': 1.8.0
       markdown-actions: 1.1.2
@@ -3892,6 +3899,8 @@ snapshots:
   picomatch@2.3.2: {}
 
   picomatch@4.0.7: {}
+
+  pinyin-pro@3.29.4: {}
 
   pirates@4.0.7: {}
 

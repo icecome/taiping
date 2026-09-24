@@ -78,6 +78,8 @@ export const postInputSchema = z.object({
   cover: optionalSafeCover,
   template: z.string().optional(),
   sortOrder: z.number().int().default(0),
+  /** 计划/实际发布时间；发布时写入，未来时间到点后前台可见 */
+  publishedAt: z.string().datetime().optional(),
   encrypt: z.boolean().default(false),
   encryptPassword: z.string().min(ENCRYPT_PASSWORD_MIN).optional(),
   encryptHint: z.string().optional(),

@@ -13,7 +13,7 @@ import { TagSelector, type TagOption } from '../components/ui/TagSelector'
 import { toast } from '../lib/toast'
 import { HttpError } from '../api/client'
 import { slugify } from '@taiping/shared-utils/slug'
-import { toDatetimeLocal } from '../lib/datetime'
+import { toDatetimeLocal, toIso } from '../lib/datetime'
 import { countWords } from '@taiping/shared-utils/reading-time'
 import { MediaPicker } from '../components/media/MediaPicker'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
@@ -56,6 +56,7 @@ export function PostEditPage({ contentType }: Props) {
   const [dirty, setDirty] = useState(false)
   const [mediaOpen, setMediaOpen] = useState(false)
   const [slugAuto, setSlugAuto] = useState(true)
+  const [publishAtLocal, setPublishAtLocal] = useState('')
   const [mobileSideOpen, setMobileSideOpen] = useState(false)
   const editorHostRef = useRef<HTMLDivElement | null>(null)
 
@@ -125,6 +126,7 @@ export function PostEditPage({ contentType }: Props) {
       tagNames: detail.data.tags.map((t) => t.name),
     })
     setDirty(false)
+    setPublishAtLocal(toDatetimeLocal(detail.data.publishedAt))
     // 如果已有 slug 且和标题生成的不一致，关闭自动生成
     if (detail.data.slug && detail.data.title) {
       const autoSlug = slugify(detail.data.title)
@@ -179,11 +181,11 @@ export function PostEditPage({ contentType }: Props) {
   })
 
   const publish = useMutation({
-    mutationFn: async (input: PostInput) => {
+    mutationFn: async (payload: { input: PostInput; publishedAt?: string }) => {
       const saved = isNew
-        ? await api.posts.create(input)
-        : await api.posts.update(id as string, input)
-      return api.posts.publish(saved.id)
+        ? await api.posts.create(payload.input)
+        : await api.posts.update(id as string, payload.input)
+      return api.posts.publish(saved.id, payload.publishedAt)
     },
     onSuccess: (post) => {
       queryClient.invalidateQueries({ queryKey: [listKey] })
@@ -215,7 +217,14 @@ export function PostEditPage({ contentType }: Props) {
   }
 
   const handlePublish = () => {
-    void form.handleSubmit((values) => publish.mutate(buildPayload(values)), onInvalid)()
+    void form.handleSubmit(
+      (values) =>
+        publish.mutate({
+          input: buildPayload(values),
+          publishedAt: publishAtLocal ? toIso(publishAtLocal) : undefined,
+        }),
+      onInvalid,
+    )()
   }
 
   const handleDelete = async () => {
@@ -240,12 +249,26 @@ export function PostEditPage({ contentType }: Props) {
         <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">发布</h3>
         <div className="space-y-1.5 text-muted-foreground">
           <div>状态：{statusLabel}</div>
-          {status === 'published' && publishedAt && (
-            <div>发布时间：{toDatetimeLocal(publishedAt)}</div>
-          )}
-          <div className="text-xs">
-            保存会写入修订；发布将当前修订设为线上版本。
+          <div className="text-xs leading-relaxed">
+            「保存」只写入草稿修订，不会出现在前台。
+            <br />
+            「发布」把当前正文设为线上版本；已发布后再保存，前台仍是旧文，直到再次发布。
           </div>
+        </div>
+        <div className="mt-2">
+          <label className="text-xs text-muted-foreground">发布时间</label>
+          <Input
+            type="datetime-local"
+            className="mt-1"
+            value={publishAtLocal || toDatetimeLocal(publishedAt)}
+            onChange={(e) => {
+              setPublishAtLocal(e.target.value)
+              markDirty()
+            }}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            留空则发布时用当前时间；可设为未来时间定时可见。
+          </p>
         </div>
       </section>
 
@@ -345,6 +368,61 @@ export function PostEditPage({ contentType }: Props) {
         </section>
       )}
 
+      {/* 加密 */}
+      <section>
+        <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">加密</h3>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={form.watch('encrypt')}
+            onChange={(e) => {
+              form.setValue('encrypt', e.target.checked, { shouldDirty: true })
+              markDirty()
+            }}
+          />
+          <span>访问密码保护</span>
+        </label>
+        {form.watch('encrypt') ? (
+          <div className="mt-2 space-y-2">
+            <Input
+              type="password"
+              placeholder="访问密码（至少 4 位）"
+              autoComplete="new-password"
+              value={form.watch('encryptPassword') ?? ''}
+              onChange={(e) => {
+                form.setValue('encryptPassword', e.target.value, { shouldDirty: true })
+                markDirty()
+              }}
+            />
+            <Input
+              placeholder="密码提示（可选）"
+              value={form.watch('encryptHint') ?? ''}
+              onChange={(e) => {
+                form.setValue('encryptHint', e.target.value, { shouldDirty: true })
+                markDirty()
+              }}
+            />
+            <Input
+              placeholder="加密标题（可选）"
+              value={form.watch('encryptTitle') ?? ''}
+              onChange={(e) => {
+                form.setValue('encryptTitle', e.target.value, { shouldDirty: true })
+                markDirty()
+              }}
+            />
+            <textarea
+              className="input-base min-h-[64px] resize-none"
+              placeholder="解锁前文案（可选）"
+              value={form.watch('encryptMessage') ?? ''}
+              onChange={(e) => {
+                form.setValue('encryptMessage', e.target.value, { shouldDirty: true })
+                markDirty()
+              }}
+            />
+          </div>
+        ) : null}
+      </section>
+
       {/* 操作区 */}
       {!isNew && (
         <section className="pt-2 border-t border-border-subtle">
@@ -392,7 +470,7 @@ export function PostEditPage({ contentType }: Props) {
             disabled={save.isPending || publish.isPending}
             onClick={handleSave}
           >
-            保存
+            保存草稿
           </Button>
           <Button
             variant="primary"
@@ -400,7 +478,7 @@ export function PostEditPage({ contentType }: Props) {
             disabled={save.isPending || publish.isPending}
             onClick={handlePublish}
           >
-            发布
+            {status === 'published' && inProgress ? '发布修改' : '发布'}
           </Button>
         </div>
       </div>
@@ -452,6 +530,7 @@ export function PostEditPage({ contentType }: Props) {
                 <OverTypeEditor
                   key={editorId}
                   value={contentMd}
+                  height={560}
                   onChange={(v) => {
                     form.setValue('contentMd', v, { shouldDirty: true })
                     markDirty()

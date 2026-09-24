@@ -248,6 +248,8 @@ export async function getPostBySlug(
   if (opts.publishedOnly) {
     conds.push("p.status = 'published'")
     conds.push('p.release_revision_id IS NOT NULL')
+    conds.push('(p.published_at IS NULL OR p.published_at <= ?)')
+    binds.push(nowIso())
     const row = await db
       .prepare(`${joinSql('release')} WHERE ${conds.join(' AND ')}`)
       .bind(...binds)
@@ -265,10 +267,12 @@ export async function getPublishedPosts(db: D1Database, type: 'post' | 'page' = 
   const rows = await db
     .prepare(
       `${joinSql('release')}
-       WHERE p.status = 'published' AND p.deleted_at IS NULL AND p.release_revision_id IS NOT NULL AND p.type = ?
+       WHERE p.status = 'published' AND p.deleted_at IS NULL AND p.release_revision_id IS NOT NULL
+         AND p.type = ?
+         AND (p.published_at IS NULL OR p.published_at <= ?)
        ORDER BY COALESCE(p.published_at, p.created_at) DESC`,
     )
-    .bind(type)
+    .bind(type, nowIso())
     .all<JoinedRow>()
   return rows.results.map(rowToPost)
 }
@@ -343,7 +347,7 @@ export async function createPost(db: D1Database, input: PostInput): Promise<Post
   const passwordHash =
     input.encrypt && input.encryptPassword ? await hashPassword(input.encryptPassword) : null
 
-  const revId = await insertRevision(db, id, content)
+  // 先插 posts 再插 revision，避免 post_revisions.post_id 外键失败
   await db
     .prepare(
       `INSERT INTO posts (
@@ -351,14 +355,13 @@ export async function createPost(db: D1Database, input: PostInput): Promise<Post
         status, published_at, template, sort_order,
         encrypt, encrypt_password_hash, encrypt_hint, encrypt_title, encrypt_message,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, NULL, NULL, 'draft', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, NULL, NULL, NULL, 'draft', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       id,
       slug,
       input.type,
       input.title,
-      revId,
       input.template ?? null,
       input.sortOrder,
       input.encrypt ? 1 : 0,
@@ -369,6 +372,12 @@ export async function createPost(db: D1Database, input: PostInput): Promise<Post
       now,
       now,
     )
+    .run()
+
+  const revId = await insertRevision(db, id, content)
+  await db
+    .prepare('UPDATE posts SET head_revision_id = ?, updated_at = ? WHERE id = ?')
+    .bind(revId, now, id)
     .run()
 
   const termIds = await resolveOrCreateTerms(db, input.categoryIds, input.tagNames)
@@ -458,7 +467,11 @@ export async function updatePost(db: D1Database, id: string, input: PostInput): 
   return updated
 }
 
-export async function publishPost(db: D1Database, id: string): Promise<Post> {
+export async function publishPost(
+  db: D1Database,
+  id: string,
+  publishedAt?: string,
+): Promise<Post> {
   const current = await getPostById(db, id)
   if (!current || current.deletedAt) {
     throw Object.assign(new Error('post not found'), { code: 'NOT_FOUND' })
@@ -467,16 +480,17 @@ export async function publishPost(db: D1Database, id: string): Promise<Post> {
     throw Object.assign(new Error('missing head revision'), { code: 'VALIDATION_FAILED' })
   }
   const now = nowIso()
+  const pubAt = publishedAt || current.publishedAt || now
   await db
     .prepare(
       `UPDATE posts SET
         status = 'published',
         release_revision_id = ?,
-        published_at = COALESCE(published_at, ?),
+        published_at = ?,
         updated_at = ?
       WHERE id = ?`,
     )
-    .bind(current.headRevisionId, now, now, id)
+    .bind(current.headRevisionId, pubAt, now, id)
     .run()
   await enqueueMirror(db, current.type === 'page' ? 'page' : 'post', id, 'upsert')
   const updated = await getPostById(db, id)

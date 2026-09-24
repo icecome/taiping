@@ -882,6 +882,15 @@ table.admin-data-table td {
 .overtype-editor-host {
   position: relative !important;
   overflow: visible !important;
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+}
+
+.overtype-editor-host .overtype-container,
+.overtype-editor-host .overtype-wrapper {
+  min-height: 520px !important;
+  flex: 1 1 auto !important;
 }
 
 .overtype-editor-host .overtype-wrapper {

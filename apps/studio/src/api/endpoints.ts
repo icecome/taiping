@@ -76,7 +76,8 @@ export const api = {
     create: (input: PostInput) => http.post<Post>('/api/admin/posts', input),
     update: (id: string, input: PostInput) => http.patch<Post>(`/api/admin/posts/${id}`, input),
     remove: (id: string) => http.delete<{ deleted: boolean }>(`/api/admin/posts/${id}`),
-    publish: (id: string) => http.post<Post>(`/api/admin/posts/${id}/publish`),
+    publish: (id: string, publishedAt?: string) =>
+      http.post<Post>(`/api/admin/posts/${id}/publish`, publishedAt ? { publishedAt } : {}),
     unpublish: (id: string) => http.post<Post>(`/api/admin/posts/${id}/unpublish`),
     recycle: (id: string) => http.post<Post>(`/api/admin/posts/${id}/recycle`),
     restore: (id: string) => http.post<Post>(`/api/admin/posts/${id}/restore`),

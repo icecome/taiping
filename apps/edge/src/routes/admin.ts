@@ -361,8 +361,13 @@ admin.delete('/posts/:id', async (c) => {
 })
 
 admin.post('/posts/:id/publish', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  const publishedAt =
+    body && typeof body === 'object' && typeof (body as { publishedAt?: unknown }).publishedAt === 'string'
+      ? ((body as { publishedAt: string }).publishedAt)
+      : undefined
   try {
-    return jsonOk(c, await publishPost(c.env.DB, c.req.param('id')))
+    return jsonOk(c, await publishPost(c.env.DB, c.req.param('id'), publishedAt))
   } catch (err) {
     const code = (err as { code?: string }).code
     if (code === 'NOT_FOUND') return jsonFail(c, 'NOT_FOUND', '文章不存在')
