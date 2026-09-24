@@ -52,11 +52,14 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   }
   if (isAuthPublic(c.req.path)) {
     // 公开写接口（登录/注册/重置）同样做 Origin 校验
-    if (
-      !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method) &&
-      !isTrustedOrigin(c.req.url, (name) => c.req.header(name))
-    ) {
-      return jsonFail(c, 'FORBIDDEN', '跨站请求被拒绝')
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) {
+      if (!isTrustedOrigin(c.req.url, (name) => c.req.header(name))) {
+        return jsonFail(c, 'FORBIDDEN', '跨站请求被拒绝')
+      }
+      const requestedWith = c.req.header('X-Requested-With')
+      if (requestedWith !== 'XMLHttpRequest') {
+        return jsonFail(c, 'FORBIDDEN', '缺少 CSRF 校验头')
+      }
     }
     return next()
   }
