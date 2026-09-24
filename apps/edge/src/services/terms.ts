@@ -3,7 +3,7 @@ import type { Term, TermInput } from '@taiping/content-model/term'
 import type { Post } from '@taiping/content-model/post'
 import { newId } from '../lib/cache'
 import { enqueueMirror } from '../lib/mirror'
-import { rowToPost, type PostRow } from './posts'
+import { rowToPost } from './posts'
 import { slugify } from '@taiping/shared-utils'
 
 interface TermRow {
@@ -34,7 +34,7 @@ export async function listTermsWithCounts(
       `SELECT t.id, t.type, t.name, t.slug, COUNT(p.id) AS count
        FROM terms t
        LEFT JOIN post_terms pt ON pt.term_id = t.id
-       LEFT JOIN posts p ON p.id = pt.post_id AND p.status = 'published'
+       LEFT JOIN posts p ON p.id = pt.post_id AND p.status = 'published' AND p.deleted_at IS NULL
        WHERE t.type = ?
        GROUP BY t.id
        ORDER BY t.name`,
@@ -102,14 +102,20 @@ export async function listPostsByTermSlug(
 ): Promise<Post[]> {
   const rows = await db
     .prepare(
-      `SELECT p.* FROM posts p
+      `SELECT p.id, p.slug, p.type, p.title, p.status, p.head_revision_id, p.release_revision_id,
+        p.deleted_at, p.published_at, p.template, p.sort_order, p.encrypt, p.encrypt_password_hash,
+        p.encrypt_hint, p.encrypt_title, p.encrypt_message, p.created_at, p.updated_at,
+        r.id as rev_id, r.content_md, r.content_html, r.excerpt, r.cover, r.reading_time
+       FROM posts p
        JOIN post_terms pt ON pt.post_id = p.id
        JOIN terms t ON t.id = pt.term_id
-       WHERE t.type = ? AND t.slug = ? AND p.status = 'published'
+       LEFT JOIN post_revisions r ON r.id = p.release_revision_id
+       WHERE t.type = ? AND t.slug = ?
+         AND p.status = 'published' AND p.deleted_at IS NULL AND p.release_revision_id IS NOT NULL
        ORDER BY COALESCE(p.published_at, p.created_at) DESC`,
     )
     .bind(type, slug)
-    .all<PostRow>()
+    .all<Parameters<typeof rowToPost>[0]>()
   return rows.results.map(rowToPost)
 }
 

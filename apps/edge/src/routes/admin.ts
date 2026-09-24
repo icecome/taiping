@@ -44,7 +44,12 @@ import {
   getPostById,
   getPostTerms,
   listPosts,
-  setPostStatus,
+  listRevisions,
+  publishPost,
+  recyclePost,
+  restorePost,
+  revertToRevision,
+  unpublishPost,
   updatePost,
 } from '../services/posts'
 import {
@@ -317,13 +322,45 @@ admin.delete('/posts/:id', async (c) => {
 })
 
 admin.post('/posts/:id/publish', async (c) => {
-  const post = await setPostStatus(c.env.DB, c.req.param('id'), 'published')
-  return jsonOk(c, post)
+  try {
+    return jsonOk(c, await publishPost(c.env.DB, c.req.param('id')))
+  } catch (err) {
+    const code = (err as { code?: string }).code
+    if (code === 'NOT_FOUND') return jsonFail(c, 'NOT_FOUND', '文章不存在')
+    if (code === 'VALIDATION_FAILED') return jsonFail(c, 'VALIDATION_FAILED', '缺少可发布正文')
+    throw err
+  }
 })
 
 admin.post('/posts/:id/unpublish', async (c) => {
-  const post = await setPostStatus(c.env.DB, c.req.param('id'), 'draft')
-  return jsonOk(c, post)
+  return jsonOk(c, await unpublishPost(c.env.DB, c.req.param('id')))
+})
+
+admin.post('/posts/:id/recycle', async (c) => {
+  return jsonOk(c, await recyclePost(c.env.DB, c.req.param('id')))
+})
+
+admin.post('/posts/:id/restore', async (c) => {
+  return jsonOk(c, await restorePost(c.env.DB, c.req.param('id')))
+})
+
+admin.get('/posts/:id/revisions', async (c) => {
+  const post = await getPostById(c.env.DB, c.req.param('id'))
+  if (!post) return jsonFail(c, 'NOT_FOUND', '文章不存在')
+  return jsonOk(c, await listRevisions(c.env.DB, post.id))
+})
+
+admin.post('/posts/:id/revisions/:revisionId/revert', async (c) => {
+  try {
+    return jsonOk(
+      c,
+      await revertToRevision(c.env.DB, c.req.param('id'), c.req.param('revisionId')),
+    )
+  } catch (err) {
+    const code = (err as { code?: string }).code
+    if (code === 'NOT_FOUND') return jsonFail(c, 'NOT_FOUND', '文章或版本不存在')
+    throw err
+  }
 })
 
 // --- moments ---

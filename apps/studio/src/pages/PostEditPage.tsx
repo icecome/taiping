@@ -8,13 +8,12 @@ import { postInputSchema, type PostInput } from '@taiping/content-model/post'
 import { api } from '../api/endpoints'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
-import { Select } from '../components/ui/Select'
 import { Badge } from '../components/ui/Badge'
 import { TagSelector, type TagOption } from '../components/ui/TagSelector'
 import { toast } from '../lib/toast'
 import { HttpError } from '../api/client'
 import { slugify } from '@taiping/shared-utils/slug'
-import { toIso, toDatetimeLocal } from '../lib/datetime'
+import { toDatetimeLocal } from '../lib/datetime'
 import { countWords } from '@taiping/shared-utils/reading-time'
 import { MediaPicker } from '../components/media/MediaPicker'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
@@ -23,7 +22,6 @@ const OverTypeEditor = lazy(() => import('../components/editor/OverTypeEditor'))
 
 const defaultValues = {
   type: 'post' as const,
-  status: 'draft' as const,
   title: '',
   slug: '',
   contentMd: '',
@@ -53,7 +51,6 @@ export function PostEditPage({ contentType }: Props) {
   const listKey = isPage ? 'pages' : 'posts'
   const editorId = isPage ? `page-editor-${id ?? 'new'}` : `post-editor-${id ?? 'new'}`
 
-  const [status, setStatus] = useState<'draft' | 'published'>('draft')
   const [sideOpen, setSideOpen] = useState(true)
   const [savedAt, setSavedAt] = useState<string | null>(null)
   const [dirty, setDirty] = useState(false)
@@ -95,13 +92,15 @@ export function PostEditPage({ contentType }: Props) {
     defaultValues: { ...defaultValues, type: contentType } as PostInput,
   })
 
+  const status = detail.data?.status ?? 'draft'
+  const inProgress = detail.data?.inProgress ?? false
   const title = form.watch('title') || ''
   const slug = form.watch('slug') || ''
   const contentMd = form.watch('contentMd') || ''
   const excerpt = form.watch('excerpt') || ''
   const cover = form.watch('cover') || ''
   const template = form.watch('template') || ''
-  const publishedAt = form.watch('publishedAt') || ''
+  const publishedAt = detail.data?.publishedAt || ''
   const categoryIds = form.watch('categoryIds') || []
   const tagNames = form.watch('tagNames') || []
   const wordCount = useMemo(() => countWords(contentMd), [contentMd])
@@ -109,7 +108,6 @@ export function PostEditPage({ contentType }: Props) {
   // 初始化详情数据
   useEffect(() => {
     if (!detail.data) return
-    setStatus(detail.data.status)
     form.reset({
       slug: detail.data.slug,
       type: detail.data.type,
@@ -117,8 +115,6 @@ export function PostEditPage({ contentType }: Props) {
       contentMd: detail.data.contentMd,
       excerpt: detail.data.excerpt ?? '',
       cover: detail.data.cover ?? '',
-      status: detail.data.status,
-      publishedAt: detail.data.publishedAt,
       template: detail.data.template ?? '',
       sortOrder: detail.data.sortOrder,
       encrypt: detail.data.encrypt,
@@ -159,12 +155,12 @@ export function PostEditPage({ contentType }: Props) {
   const buildPayload = (values: PostInput): PostInput => ({
     ...values,
     type: contentType,
-    status,
-    publishedAt:
-      status === 'published'
-        ? toIso(values.publishedAt) ?? new Date().toISOString()
-        : toIso(values.publishedAt),
   })
+
+  const onInvalid = (errors: Record<string, { message?: string }>) => {
+    const first = Object.values(errors)[0]
+    toast(first?.message || '请检查表单必填项', 'error')
+  }
 
   const save = useMutation({
     mutationFn: (input: PostInput) =>
@@ -174,7 +170,7 @@ export function PostEditPage({ contentType }: Props) {
       queryClient.invalidateQueries({ queryKey: ['post', post.id] })
       setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }))
       setDirty(false)
-      toast(isNew ? '已创建' : '已保存')
+      toast(isNew ? '已创建草稿' : '已保存')
       if (isNew) navigate(`${listBase}/${post.id}`, { replace: true })
     },
     onError: (err) => {
@@ -182,11 +178,31 @@ export function PostEditPage({ contentType }: Props) {
     },
   })
 
+  const publish = useMutation({
+    mutationFn: async (input: PostInput) => {
+      const saved = isNew
+        ? await api.posts.create(input)
+        : await api.posts.update(id as string, input)
+      return api.posts.publish(saved.id)
+    },
+    onSuccess: (post) => {
+      queryClient.invalidateQueries({ queryKey: [listKey] })
+      queryClient.invalidateQueries({ queryKey: ['post', post.id] })
+      setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }))
+      setDirty(false)
+      toast('已发布')
+      if (isNew) navigate(`${listBase}/${post.id}`, { replace: true })
+    },
+    onError: (err) => {
+      toast(err instanceof HttpError ? err.message : '发布失败', 'error')
+    },
+  })
+
   const remove = useMutation({
-    mutationFn: () => api.posts.remove(id as string),
+    mutationFn: () => api.posts.recycle(id as string),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [listKey] })
-      toast('已删除')
+      toast('已移入回收站')
       navigate(listBase)
     },
     onError: (err) => {
@@ -195,28 +211,26 @@ export function PostEditPage({ contentType }: Props) {
   })
 
   const handleSave = () => {
-    void form.handleSubmit((values) => save.mutate(buildPayload(values)))()
+    void form.handleSubmit((values) => save.mutate(buildPayload(values)), onInvalid)()
   }
 
   const handlePublish = () => {
-    setStatus('published')
-    void form.handleSubmit((values) =>
-      save.mutate(buildPayload({ ...values, status: 'published' })),
-    )()
+    void form.handleSubmit((values) => publish.mutate(buildPayload(values)), onInvalid)()
   }
 
   const handleDelete = async () => {
     const ok = await confirmDialog({
-      title: isPage ? '删除这个页面？' : '删除这篇文章？',
-      description: '此操作不可撤销。',
-      confirmLabel: '删除',
+      title: isPage ? '将页面移入回收站？' : '将文章移入回收站？',
+      description: '可在列表「回收站」中恢复，或彻底删除。',
+      confirmLabel: '移入回收站',
       danger: true,
     })
     if (ok) remove.mutate()
   }
 
-  const statusTone = status === 'published' ? 'success' : 'muted'
-  const statusLabel = status === 'published' ? '已发布' : '草稿'
+  const statusTone = status === 'published' ? (inProgress ? 'warning' : 'success') : 'muted'
+  const statusLabel =
+    status === 'published' ? (inProgress ? '已发布·有未上线修改' : '已发布') : '草稿'
 
   // 侧栏内容（桌面端右侧 / 移动端底部面板共用）
   const sidebarContent = (
@@ -224,32 +238,16 @@ export function PostEditPage({ contentType }: Props) {
       {/* 发布状态 */}
       <section>
         <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">发布</h3>
-        <Select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value as 'draft' | 'published')
-            markDirty()
-          }}
-        >
-          <option value="draft">草稿</option>
-          <option value="published">已发布</option>
-        </Select>
+        <div className="space-y-1.5 text-muted-foreground">
+          <div>状态：{statusLabel}</div>
+          {status === 'published' && publishedAt && (
+            <div>发布时间：{toDatetimeLocal(publishedAt)}</div>
+          )}
+          <div className="text-xs">
+            保存会写入修订；发布将当前修订设为线上版本。
+          </div>
+        </div>
       </section>
-
-      {/* 发布时间 */}
-      {status === 'published' && (
-        <section>
-          <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">发布时间</h3>
-          <Input
-            type="datetime-local"
-            value={toDatetimeLocal(publishedAt)}
-            onChange={(e) => {
-              form.setValue('publishedAt', e.target.value, { shouldDirty: true })
-              markDirty()
-            }}
-          />
-        </section>
-      )}
 
       {/* 路径 */}
       <section>
@@ -391,7 +389,7 @@ export function PostEditPage({ contentType }: Props) {
           <Button
             size="sm"
             icon={<Save size={14} />}
-            disabled={save.isPending}
+            disabled={save.isPending || publish.isPending}
             onClick={handleSave}
           >
             保存
@@ -399,7 +397,7 @@ export function PostEditPage({ contentType }: Props) {
           <Button
             variant="primary"
             size="sm"
-            disabled={save.isPending}
+            disabled={save.isPending || publish.isPending}
             onClick={handlePublish}
           >
             发布

@@ -14,43 +14,68 @@ export type PostStatus = z.infer<typeof postStatusSchema>
 export const postTypeSchema = z.enum(['post', 'page'])
 export type PostType = z.infer<typeof postTypeSchema>
 
-export const postSchema = z.object({
+export const postSlugSchema = z
+  .string()
+  .min(1)
+  .max(SLUG_MAX_LEN)
+  .regex(SLUG_RE, 'slug 仅允许小写字母、数字与连字符')
+
+/** 正文修订（整篇快照） */
+export const postRevisionSchema = z.object({
   id: z.string().min(1),
-  slug: z
-    .string()
-    .min(1)
-    .max(SLUG_MAX_LEN)
-    .regex(SLUG_RE, 'slug 仅允许小写字母、数字与连字符'),
-  type: postTypeSchema,
-  title: z.string().min(1).max(120),
+  postId: z.string().min(1),
   contentMd: z.string(),
   contentHtml: z.string().default(''),
   excerpt: z.string().max(500).optional(),
   cover: optionalSafeCover,
-  status: postStatusSchema.default('draft'),
-  publishedAt: z.string().datetime().optional(),
   readingTime: z.string().optional(),
-  template: z.string().optional(),
-  sortOrder: z.number().int().default(0),
-  encrypt: z.boolean().default(false),
-  encryptPasswordHash: z.string().optional(),
-  encryptHint: z.string().optional(),
-  encryptTitle: z.string().optional(),
-  encryptMessage: z.string().optional(),
   createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
 })
+export type PostRevision = z.infer<typeof postRevisionSchema>
+
+/** 文章元数据 + 当前 head 正文（读模型）；inProgress 由 head/release 指针推导 */
+export const postSchema = z
+  .object({
+    id: z.string().min(1),
+    slug: postSlugSchema,
+    type: postTypeSchema,
+    title: z.string().min(1).max(120),
+    status: postStatusSchema.default('draft'),
+    headRevisionId: z.string().optional(),
+    releaseRevisionId: z.string().optional(),
+    inProgress: z.boolean().optional(),
+    deletedAt: z.string().datetime().optional(),
+    publishedAt: z.string().datetime().optional(),
+    contentMd: z.string().default(''),
+    contentHtml: z.string().default(''),
+    excerpt: z.string().max(500).optional(),
+    cover: optionalSafeCover,
+    readingTime: z.string().optional(),
+    template: z.string().optional(),
+    sortOrder: z.number().int().default(0),
+    encrypt: z.boolean().default(false),
+    encryptPasswordHash: z.string().optional(),
+    encryptHint: z.string().optional(),
+    encryptTitle: z.string().optional(),
+    encryptMessage: z.string().optional(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .transform((p) => ({
+    ...p,
+    inProgress: Boolean(
+      p.headRevisionId && p.releaseRevisionId && p.headRevisionId !== p.releaseRevisionId,
+    ),
+  }))
 export type Post = z.infer<typeof postSchema>
 
 export const postInputSchema = z.object({
-  slug: postSchema.shape.slug,
+  slug: postSlugSchema.optional(),
   type: postTypeSchema.default('post'),
-  title: postSchema.shape.title,
+  title: z.string().min(1).max(120),
   contentMd: z.string().default(''),
   excerpt: z.string().max(500).optional(),
   cover: optionalSafeCover,
-  status: postStatusSchema.default('draft'),
-  publishedAt: z.string().datetime().optional(),
   template: z.string().optional(),
   sortOrder: z.number().int().default(0),
   encrypt: z.boolean().default(false),
@@ -69,6 +94,10 @@ export const postListQuerySchema = z.object({
   status: postStatusSchema.optional(),
   type: postTypeSchema.optional(),
   q: z.string().optional(),
+  deleted: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((v) => v === true || v === 'true' || v === '1'),
 })
 export type PostListQuery = z.infer<typeof postListQuerySchema>
 
@@ -104,8 +133,6 @@ export const postFields: FieldMeta[] = [
   { name: 'cover', label: '封面', control: 'image', group: 'basic' },
   { name: 'categoryIds', label: '分类', control: 'categories', group: 'basic' },
   { name: 'tagNames', label: '标签', control: 'tags', group: 'basic' },
-  { name: 'status', label: '状态', control: 'select', group: 'advanced' },
-  { name: 'publishedAt', label: '发布时间', control: 'datetime', group: 'advanced' },
   { name: 'template', label: '页面模板', control: 'text', group: 'advanced' },
   { name: 'encrypt', label: '加密', control: 'boolean', group: 'advanced' },
   {
@@ -140,7 +167,6 @@ export const postFields: FieldMeta[] = [
 
 export const postDefaults: Partial<PostInput> = {
   type: 'post',
-  status: 'draft',
   contentMd: '',
   encrypt: false,
   sortOrder: 0,

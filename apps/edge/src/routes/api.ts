@@ -117,7 +117,7 @@ api.post('/unlock/:slug', async (c) => {
   if (!parsed.success) {
     return jsonFail(c, 'VALIDATION_FAILED', '密码不能为空')
   }
-  const post = await getPostBySlug(c.env.DB, slug)
+  const post = await getPostBySlug(c.env.DB, slug, undefined, { publishedOnly: true })
   if (!post || !post.encrypt || !post.encryptPasswordHash) {
     return jsonFail(c, 'NOT_FOUND', '文章不存在或未加密')
   }

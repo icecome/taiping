@@ -50,7 +50,7 @@ export const api = {
   },
   overview: () => http.get<Overview>('/api/admin/overview'),
   posts: {
-    list: (params: Record<string, string | number | undefined>) => {
+    list: (params: Record<string, string | number | undefined | boolean>) => {
       const qs = new URLSearchParams()
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== '') qs.set(key, String(value))
@@ -63,6 +63,14 @@ export const api = {
     remove: (id: string) => http.delete<{ deleted: boolean }>(`/api/admin/posts/${id}`),
     publish: (id: string) => http.post<Post>(`/api/admin/posts/${id}/publish`),
     unpublish: (id: string) => http.post<Post>(`/api/admin/posts/${id}/unpublish`),
+    recycle: (id: string) => http.post<Post>(`/api/admin/posts/${id}/recycle`),
+    restore: (id: string) => http.post<Post>(`/api/admin/posts/${id}/restore`),
+    revisions: (id: string) =>
+      http.get<Array<{ id: string; createdAt: string; excerpt?: string }>>(
+        `/api/admin/posts/${id}/revisions`,
+      ),
+    revert: (id: string, revisionId: string) =>
+      http.post<Post>(`/api/admin/posts/${id}/revisions/${revisionId}/revert`),
   },
   moments: {
     list: (params: Record<string, string | number | undefined>) => {

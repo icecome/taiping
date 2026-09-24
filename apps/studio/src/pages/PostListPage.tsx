@@ -43,7 +43,8 @@ export function PostListPage({ contentType }: Props) {
         page,
         pageSize,
         type: contentType,
-        status: status || undefined,
+        status: status === 'trash' ? undefined : status || undefined,
+        deleted: status === 'trash' ? true : undefined,
         q: q || undefined,
         category: category || undefined,
       }),
@@ -56,10 +57,26 @@ export function PostListPage({ contentType }: Props) {
   })
 
   const remove = useMutation({
+    mutationFn: (id: string) => api.posts.recycle(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [listKey] })
+      toast('已移入回收站')
+    },
+    onError: () => toast('删除失败', 'error'),
+  })
+  const restore = useMutation({
+    mutationFn: (id: string) => api.posts.restore(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [listKey] })
+      toast('已恢复')
+    },
+    onError: () => toast('恢复失败', 'error'),
+  })
+  const purge = useMutation({
     mutationFn: (id: string) => api.posts.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [listKey] })
-      toast('已删除')
+      toast('已彻底删除')
     },
     onError: () => toast('删除失败', 'error'),
   })
@@ -77,6 +94,7 @@ export function PostListPage({ contentType }: Props) {
     { key: '', label: '全部' },
     { key: 'published', label: '已发布' },
     { key: 'draft', label: '草稿' },
+    { key: 'trash', label: '回收站' },
   ]
 
   const handleStatusChange = (key: string) => {

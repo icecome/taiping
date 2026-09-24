@@ -80,7 +80,12 @@ async function buildSnapshot(
   }
   if (entityType === 'post' || entityType === 'page') {
     const row = await db
-      .prepare('SELECT * FROM posts WHERE id = ?')
+      .prepare(
+        `SELECT p.*, r.content_md, r.content_html
+         FROM posts p
+         LEFT JOIN post_revisions r ON r.id = COALESCE(p.release_revision_id, p.head_revision_id)
+         WHERE p.id = ?`,
+      )
       .bind(entityId)
       .first<Record<string, unknown>>()
     if (!row) return null

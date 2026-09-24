@@ -80,8 +80,8 @@ publicRoutes.get('/', async (c) => {
 
 publicRoutes.get('/posts/:slug', async (c) => {
   const settings = await getSettings(c.env.DB)
-  const post = await getPostBySlug(c.env.DB, c.req.param('slug'), 'post')
-  if (!post || post.status !== 'published') {
+  const post = await getPostBySlug(c.env.DB, c.req.param('slug'), 'post', { publishedOnly: true })
+  if (!post) {
     return c.html(
       renderNotFound({ settings, path: c.req.path, title: '页面不存在' }),
       404,
@@ -125,8 +125,8 @@ publicRoutes.get('/pages/:slug', async (c) => {
   if (slug === 'guestbook' || slug === 'links') {
     return c.redirect(slug === 'guestbook' ? '/guestbook' : '/pages/links')
   }
-  const post = await getPostBySlug(c.env.DB, slug, 'page')
-  if (!post || post.status !== 'published') {
+  const post = await getPostBySlug(c.env.DB, slug, 'page', { publishedOnly: true })
+  if (!post) {
     return c.html(renderNotFound({ settings, path: c.req.path, title: '页面不存在' }), 404)
   }
   const comments = await listPublicCommentsWithReplies(c.env.DB, 'post', post.id)

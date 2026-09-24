@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { postSchema, postInputSchema } from '../src/post'
+import { postSchema, postInputSchema, postRevisionSchema } from '../src/post'
 import { commentCreateSchema } from '../src/comment'
 import {
   siteSettingsSchema,
@@ -24,6 +24,7 @@ describe('postSchema', () => {
       updatedAt: new Date().toISOString(),
     })
     expect(parsed.slug).toBe('hello-world')
+    expect(parsed.inProgress).toBe(false)
   })
 
   it('rejects invalid slug', () => {
@@ -38,16 +39,52 @@ describe('postSchema', () => {
     })
     expect(result.success).toBe(false)
   })
+
+  it('marks inProgress when head differs from release', () => {
+    const parsed = postSchema.parse({
+      id: 'p1',
+      slug: 'a',
+      type: 'post',
+      title: 't',
+      headRevisionId: 'rev_2',
+      releaseRevisionId: 'rev_1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    expect(parsed.inProgress).toBe(true)
+  })
 })
 
 describe('postInputSchema', () => {
-  it('defaults status to draft', () => {
+  it('slug is optional and defaults content lists', () => {
     const parsed = postInputSchema.parse({
-      slug: 'a-post',
       title: '标题',
     })
-    expect(parsed.status).toBe('draft')
+    expect(parsed.slug).toBeUndefined()
+    expect(parsed.contentMd).toBe('')
     expect(parsed.categoryIds).toEqual([])
+    expect(parsed.tagNames).toEqual([])
+  })
+
+  it('rejects unicode slug', () => {
+    expect(
+      postInputSchema.safeParse({ title: 't', slug: '你好' }).success,
+    ).toBe(false)
+    expect(
+      postInputSchema.safeParse({ title: 't', slug: 'hello-world' }).success,
+    ).toBe(true)
+  })
+})
+
+describe('postRevisionSchema', () => {
+  it('accepts snapshot payload', () => {
+    const parsed = postRevisionSchema.parse({
+      id: 'rev_1',
+      postId: 'p1',
+      contentMd: '# x',
+      createdAt: new Date().toISOString(),
+    })
+    expect(parsed.contentHtml).toBe('')
   })
 })
 
