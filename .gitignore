@@ -3,6 +3,8 @@ node_modules/
 
 # 构建产物
 dist/
+# vendored 编辑器预构建产物需入库，供 CI typecheck/build 使用
+!vendor/overtypeplus/dist/
 .vite/
 
 # 本地状态与密钥（.dev.vars.example 需保留，见下方 ! 规则）
