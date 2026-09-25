@@ -5,20 +5,12 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./date": "./src/date.ts",
-    "./slug": "./src/slug.ts",
-    "./reading-time": "./src/reading-time.ts",
-    "./string": "./src/string.ts"
+    "./date": "./src/date.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
-  },
-  "dependencies": {
-    "pinyin-pro": "^3.29.4"
+    "typescript": "^5.7.2"
   }
 }

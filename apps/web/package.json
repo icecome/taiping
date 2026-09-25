@@ -1,0 +1,26 @@
+{
+  "name": "@taiping/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:migrate:local": "wrangler d1 migrations apply taiping-blog --local",
+    "db:migrate:remote": "wrangler d1 migrations apply taiping-blog --remote"
+  },
+  "dependencies": {
+    "@taiping/content-model": "*",
+    "@taiping/shared-utils": "*",
+    "@taiping/theme-zhuosu": "*",
+    "hono": "^4.6.14",
+    "marked": "^15.0.4",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.101.0"
+  }
+}

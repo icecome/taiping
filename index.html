@@ -1,0 +1,606 @@
+<!-- AI生成 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>太平控制台 · 设计预览</title>
+  <link rel="stylesheet" href="preview.css" />
+</head>
+<body>
+<p data-aigc-mark="1" style="margin:0 0 8px;font-size:10px;line-height:1.3;color:#6b6560;font-weight:400;">AI生成</p>
+
+  <div class="sr-live" id="live-region" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div class="toast" id="toast" aria-hidden="true"></div>
+  <div class="app" id="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">太</div>
+        <div class="brand-text">
+          <div class="brand-title">太平</div>
+          <div class="brand-sub">Tai-Ping Console</div>
+        </div>
+      </div>
+
+      <button class="search-trigger" type="button" id="open-palette" aria-label="打开命令面板">
+        <span class="search-icon" aria-hidden="true"></span>
+        <span>搜索或跳转</span>
+        <kbd>⌘K</kbd>
+      </button>
+
+      <nav class="nav">
+        <div class="nav-group">
+          <div class="nav-group-title">工作台</div>
+          <button class="nav-item is-active" type="button" data-view="dashboard">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M3 4.5h6v6H3v-6Zm8 0h6v3.5h-6V4.5ZM3 12.5h6V17H3v-4.5Zm8-2.5h6V17h-6V10Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            </span>
+            <span>仪表盘</span>
+          </button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">内容</div>
+          <button class="nav-item" type="button" data-view="posts">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M5 3.5h10a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.4"/><path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <span>文章</span>
+          </button>
+          <button class="nav-item" type="button" data-view="pages">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="none"><rect x="4" y="3.5" width="12" height="13" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 7.5h6M7 10.5h6M7 13.5h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <span>页面</span>
+          </button>
+          <button class="nav-item" type="button" data-view="moments">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 10.5h6M10 7.5v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <span>说说</span>
+          </button>
+          <button class="nav-item" type="button" data-view="messages">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h9A1.5 1.5 0 0 1 16 5.5v6A1.5 1.5 0 0 1 14.5 13H8l-3 2.5V5.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            </span>
+            <span>留言</span>
+            <span class="nav-badge" id="nav-msg-badge">3</span>
+          </button>
+          <button class="nav-item" type="button" data-view="taxonomies">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M4 6h4l1.5 2H16v7.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4 6V5a1 1 0 0 1 1-1h3.2L9.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <span>分类 / 标签</span>
+          </button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">外观与系统</div>
+          <button class="nav-item" type="button" data-view="theme">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M10 3.5v1.2M10 15.3v1.2M3.5 10h1.2M15.3 10h1.2M5.4 5.4l.9.9M13.7 13.7l.9.9M5.4 14.6l.9-.9M13.7 6.3l.9-.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <span>主题设置</span>
+          </button>
+          <button class="nav-item" type="button" data-view="settings">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.2" stroke="currentColor" stroke-width="1.4"/><path d="M10 3.8 11 5l1.4-.2.6 1.3 1.3.6-.2 1.4 1.2 1-.5 1.3.8 1.2-1.1 1 .2 1.4-1.4.5-.7 1.3-1.3-.4-1 1.1-1.2-.7-1.2.7-1-1.1-1.3.4-.7-1.3-1.4-.5.2-1.4-1.1-1 .8-1.2-.5-1.3 1.2-1-.2-1.4 1.3-.6.6-1.3L7 5l1 .2.9-1.2Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
+            </span>
+            <span>站点设置</span>
+          </button>
+        </div>
+      </nav>
+
+      <div class="side-foot">
+        <div class="user-row">
+          <div class="user-chip">
+            <div class="avatar">沈</div>
+            <div class="user-meta">
+              <div class="user-name">沈观澜</div>
+              <div class="user-role">超级管理员</div>
+            </div>
+          </div>
+          <button class="linkish logout" type="button">退出</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-wrap">
+      <header class="topbar">
+        <div class="crumbs" id="crumbs">
+          <span class="crumb-root">太平</span>
+          <span class="crumb-sep" aria-hidden="true">/</span>
+          <span class="crumb-current">仪表盘</span>
+        </div>
+        <div class="top-actions">
+          <button class="icon-btn" type="button" aria-label="通知">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 8a4 4 0 1 1 8 0c0 3 1 4 1 4H5s1-1 1-4Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8.5 15a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </button>
+          <button class="btn primary" type="button" data-view="editor">撰写文章</button>
+        </div>
+      </header>
+
+      <main class="content" id="content">
+        <!-- 仪表盘 -->
+        <section class="view is-active" data-view-panel="dashboard" aria-label="仪表盘">
+          <header class="page-head">
+            <div>
+              <p class="eyebrow">工作台</p>
+              <h1 class="page-title serif">下午好，沈观澜</h1>
+              <p class="page-desc">继续写点什么，或先看看站点近况。</p>
+            </div>
+          </header>
+
+          <div class="metrics">
+            <article class="metric">
+              <div class="metric-label">文章</div>
+              <div class="metric-value">128</div>
+              <div class="metric-sub">已发布 112 · 草稿 16</div>
+            </article>
+            <article class="metric">
+              <div class="metric-label">留言</div>
+              <div class="metric-value">46</div>
+              <div class="metric-sub">待审 3 · 本周 +8</div>
+            </article>
+            <article class="metric">
+              <div class="metric-label">待办</div>
+              <div class="metric-value">19</div>
+              <div class="metric-sub">草稿 16 · 待审留言 3</div>
+            </article>
+            <article class="metric">
+              <div class="metric-label">前台主题</div>
+              <div class="metric-value metric-value--text">拙素</div>
+              <div class="metric-sub">纸书排版 · 朱红点缀</div>
+            </article>
+          </div>
+
+          <div class="split">
+            <section class="panel doc-panel">
+              <div class="panel-head">
+                <h2 class="serif">最近文章</h2>
+                <button class="btn ghost sm" type="button" data-view="posts">全部</button>
+              </div>
+              <ul class="doc-list" id="dash-recent-posts"></ul>
+            </section>
+
+            <section class="panel doc-panel">
+              <div class="panel-head">
+                <h2 class="serif">快捷入口</h2>
+              </div>
+              <div class="quick-list">
+                <a class="quick-row quick-row--hero" href="/" target="_blank" rel="noopener">
+                  <span class="quick-mark">站</span>
+                  <span>
+                    <span class="quick-title">前往站点</span>
+                    <span class="quick-desc">打开前台首页，预览阅读效果</span>
+                  </span>
+                </a>
+                <button class="quick-row" type="button" data-view="editor">
+                  <span class="quick-mark">写</span>
+                  <span>
+                    <span class="quick-title">撰写文章</span>
+                    <span class="quick-desc">Markdown 写作与发布</span>
+                  </span>
+                </button>
+                <button class="quick-row" type="button" data-view="posts">
+                  <span class="quick-mark">文</span>
+                  <span>
+                    <span class="quick-title">管理文章</span>
+                    <span class="quick-desc">筛选、编辑、删除</span>
+                  </span>
+                </button>
+                <button class="quick-row" type="button" data-view="messages">
+                  <span class="quick-mark">评</span>
+                  <span>
+                    <span class="quick-title">审核留言</span>
+                    <span class="quick-desc">3 条待处理</span>
+                  </span>
+                </button>
+                <button class="quick-row" type="button" data-view="taxonomies">
+                  <span class="quick-mark">类</span>
+                  <span>
+                    <span class="quick-title">分类标签</span>
+                    <span class="quick-desc">组织内容结构</span>
+                  </span>
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel doc-panel">
+            <div class="panel-head">
+              <h2 class="serif">最近留言</h2>
+              <button class="btn ghost sm" type="button" data-view="messages">全部</button>
+            </div>
+            <ul class="message-list" id="dash-messages"></ul>
+          </section>
+        </section>
+
+        <!-- 文章列表 -->
+        <section class="view" data-view-panel="posts" aria-label="文章">
+          <header class="page-head">
+            <div>
+              <p class="eyebrow">内容</p>
+              <h1 class="page-title serif">文章</h1>
+              <p class="page-desc">撰写入口在顶部工具栏，列表专注筛选与管理。</p>
+            </div>
+          </header>
+
+          <div class="panel">
+            <div class="toolbar">
+              <label class="search-field">
+                <span class="sr-only">搜索文章</span>
+                <input type="search" id="post-search" placeholder="搜索标题 / slug" />
+              </label>
+              <label class="select-field">
+                <span class="sr-only">状态筛选</span>
+                <select id="post-status-filter">
+                  <option value="">全部状态</option>
+                  <option value="published">已发布</option>
+                  <option value="draft">草稿</option>
+                  <option value="private">私密</option>
+                </select>
+              </label>
+              <div class="spacer"></div>
+              <span class="muted" id="post-count">共 0 篇</span>
+            </div>
+
+            <ul class="post-rows" id="post-rows"></ul>
+          </div>
+        </section>
+
+        <!-- 撰写 -->
+        <section class="view" data-view-panel="editor" aria-label="撰写文章">
+          <header class="page-head editor-head">
+            <div>
+              <p class="eyebrow">撰写</p>
+              <h1 class="page-title serif">撰写新文章</h1>
+            </div>
+            <div class="row">
+              <button class="btn ghost" type="button">预览</button>
+              <button class="btn ghost" type="button">保存草稿</button>
+              <button class="btn primary" type="button">发布</button>
+            </div>
+          </header>
+
+          <div class="editor-layout">
+            <article class="editor-surface">
+              <input class="editor-title serif" type="text" value="在 Workers 上写一个轻量博客" aria-label="文章标题" />
+              <div class="editor-slug muted">/posts/lightweight-blog-on-workers</div>
+              <div class="editor-body">
+                <div class="md-toolbar" aria-label="格式工具">
+                  <button type="button">正文</button>
+                  <button type="button">加粗</button>
+                  <button type="button">引用</button>
+                  <button type="button">代码</button>
+                  <button type="button">链接</button>
+                  <button type="button">图片</button>
+                </div>
+                <div class="md-surface" contenteditable="true" spellcheck="false" aria-label="Markdown 正文">
+                  <p class="md-lead">把博客压到 Cloudflare Workers 上，最重要的不是功能堆叠，而是把「写」这件事留住。</p>
+                  <p>太平的控制台设计，希望更接近笔记软件：侧栏安静、正文宽敞、操作不抢焦点。发布只是写作的最后一步，而不是主流程。</p>
+                  <h2 class="serif">为什么是 Workers</h2>
+                  <p>边缘运行时带来更低的冷启动与更简单的部署面。D1 负责关系数据，KV 缓存热点页面，R2 托管附件。状态外置之后，Worker 本身可以保持薄。</p>
+                  <blockquote>
+                    轻量不是功能少，而是每一步都刚好够用。
+                  </blockquote>
+                  <p>下一步可以把编辑器进一步做成 Notion 式的块编辑，但在预览阶段，先保留 Markdown 原文与安静的纸面排版。</p>
+                </div>
+              </div>
+            </article>
+
+            <aside class="editor-side">
+              <section class="panel side-card">
+                <h3>发布</h3>
+                <div class="field">
+                  <label for="status">状态</label>
+                  <select id="status">
+                    <option>草稿</option>
+                    <option selected>已发布</option>
+                    <option>私密</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="pubdate">发布时间</label>
+                  <input id="pubdate" type="datetime-local" value="2026-03-12T15:30" />
+                </div>
+                <label class="check">
+                  <input type="checkbox" checked />
+                  <span>允许评论</span>
+                </label>
+                <label class="check">
+                  <input type="checkbox" />
+                  <span>置顶文章</span>
+                </label>
+              </section>
+
+              <section class="panel side-card">
+                <h3>分类与标签</h3>
+                <div class="field">
+                  <label for="cats">分类</label>
+                  <input id="cats" type="text" value="架构笔记" />
+                </div>
+                <div class="field">
+                  <label for="tags">标签</label>
+                  <input id="tags" type="text" value="Workers, 博客, 架构" />
+                </div>
+              </section>
+
+              <section class="panel side-card">
+                <h3>封面与摘要</h3>
+                <div class="field">
+                  <label for="cover">封面图</label>
+                  <input id="cover" type="text" placeholder="https://..." />
+                </div>
+                <div class="field">
+                  <label for="excerpt">摘要</label>
+                  <textarea id="excerpt" rows="4">把博客压到 Cloudflare Workers 上，最重要的不是功能堆叠，而是把「写」这件事留住。</textarea>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <!-- 页面 -->
+        <section class="view" data-view-panel="pages" aria-label="页面">
+          <header class="page-head">
+            <div>
+              <p class="eyebrow">内容</p>
+              <h1 class="page-title serif">页面</h1>
+              <p class="page-desc">关于、友链、归档等独立页面。</p>
+            </div>
+          </header>
+          <div class="panel">
+            <ul class="post-rows" id="page-rows"></ul>
+          </div>
+        </section>
+
+        <!-- 说说 -->
+        <section class="view" data-view-panel="moments" aria-label="说说">
+          <header class="page-head">
+            <div>
+              <p class="eyebrow">内容</p>
+              <h1 class="page-title serif">说说</h1>
+              <p class="page-desc">左侧随手记，右侧回顾节奏与主题。</p>
+            </div>
+          </header>
+
+          <div class="moments-layout">
+            <div class="moments-main">
+              <section class="panel moment-composer">
+                <div class="panel-head">
+                  <h2 class="serif">写点什么</h2>
+                  <span class="muted">短内容 · 支持换行</span>
+                </div>
+                <form id="moment-form">
+                  <label class="sr-only" for="moment-input">说说内容</label>
+                  <textarea id="moment-input" rows="3" placeholder="此刻的想法、摘录或碎片记录…" maxlength="280"></textarea>
+                  <div class="composer-actions">
+                    <span class="muted" id="moment-count">0 / 280</span>
+                    <button class="btn primary" type="submit">发布</button>
+                  </div>
+                </form>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head">
+                  <h2 class="serif">时间线</h2>
+                  <span class="muted" id="moment-total"></span>
+                </div>
+                <ul class="moment-list" id="moment-list"></ul>
+              </section>
+            </div>
+
+            <aside class="moments-side">
+              <section class="panel">
+                <div class="panel-head">
+                  <h2 class="serif" id="heatmap-title">活跃日历</h2>
+                  <span class="muted" id="heatmap-month-label"></span>
+                </div>
+                <div class="calendar" aria-label="当月说说活跃日历">
+                  <div class="calendar-weekdays" aria-hidden="true">
+                    <span>一</span>
+                    <span>二</span>
+                    <span>三</span>
+                    <span>四</span>
+                    <span>五</span>
+                    <span>六</span>
+                    <span>日</span>
+                  </div>
+                  <div class="calendar-grid" id="heatmap"></div>
+                </div>
+                <div class="heatmap-legend">
+                  <span>少</span>
+                  <i data-level="0"></i>
+                  <i data-level="1"></i>
+                  <i data-level="2"></i>
+                  <i data-level="3"></i>
+                  <i data-level="4"></i>
+                  <span>多</span>
+                </div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head">
+                  <h2 class="serif">标签云</h2>
+                </div>
+                <div class="tag-cloud" id="moment-tag-cloud"></div>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <!-- 留言 -->
+        <section class="view" data-view-panel="messages" aria-label="留言">
+          <header class="page-head">
+            <div>
+              <p class="eyebrow">内容</p>
+              <h1 class="page-title serif">留言</h1>
+              <p class="page-desc">点击条目打开抽屉，查看对话并调整状态。</p>
+            </div>
+          </header>
+
+          <div class="panel">
+            <div class="toolbar">
+              <div class="tabs" id="message-filters" role="tablist" aria-label="留言状态筛选">
+                <button class="tab is-active" type="button" data-filter="all">全部</button>
+                <button class="tab" type="button" data-filter="pending">待审</button>
+                <button class="tab" type="button" data-filter="approved">通过</button>
+                <button class="tab" type="button" data-filter="featured">精选</button>
+                <button class="tab" type="button" data-filter="spam">垃圾</button>
+              </div>
+              <div class="spacer"></div>
+              <span class="muted" id="message-count"></span>
+            </div>
+            <ul class="message-list" id="message-list"></ul>
+          </div>
+        </section>
+
+        <!-- 分类 / 标签 -->
+        <section class="view" data-view-panel="taxonomies" aria-label="分类标签">
+          <header class="page-head">
+            <div>
+              <p class="eyebrow">内容</p>
+              <h1 class="page-title serif">分类 / 标签</h1>
+              <p class="page-desc">维护结构，并管理与文章的关联。</p>
+            </div>
+          </header>
+
+          <div class="taxo-grid">
+            <section class="panel taxo-panel">
+              <div class="panel-head">
+                <h2 class="serif">分类</h2>
+              </div>
+              <form class="inline-form" id="category-form">
+                <label class="sr-only" for="category-name">新分类名称</label>
+                <input id="category-name" type="text" placeholder="新分类名称，如「读书札记」" required />
+                <button class="btn primary sm" type="submit">添加</button>
+              </form>
+              <ul class="taxo-list" id="category-list"></ul>
+            </section>
+
+            <section class="panel taxo-panel">
+              <div class="panel-head">
+                <h2 class="serif">标签</h2>
+              </div>
+              <form class="inline-form" id="tag-form">
+                <label class="sr-only" for="tag-name">新标签名称</label>
+                <input id="tag-name" type="text" placeholder="新标签名称，如「随笔」" required />
+                <button class="btn primary sm" type="submit">添加</button>
+              </form>
+              <ul class="taxo-list" id="tag-list"></ul>
+            </section>
+
+            <section class="panel taxo-posts">
+              <div class="panel-head">
+                <h2 class="serif">关联文章</h2>
+                <div class="taxo-active muted" id="taxo-active-label">选择左侧分类或标签</div>
+              </div>
+              <p class="muted taxo-hint">为当前分类 / 标签添加文章，或移除已关联条目。</p>
+              <div class="assoc-toolbar">
+                <label class="search-field grow">
+                  <span class="sr-only">选择文章</span>
+                  <select id="assoc-post-select"></select>
+                </label>
+                <button class="btn primary sm" type="button" id="assoc-add-btn" disabled>添加关联</button>
+              </div>
+              <ul class="assoc-list" id="assoc-list"></ul>
+            </section>
+          </div>
+        </section>
+
+        <!-- 主题设置 -->
+        <section class="view" data-view-panel="theme" aria-label="主题设置">
+          <header class="page-head">
+            <div>
+              <p class="eyebrow">外观</p>
+              <h1 class="page-title serif">主题设置</h1>
+              <p class="page-desc">与前台「拙素」纸书气质保持同源。</p>
+            </div>
+          </header>
+          <div class="panel empty-panel">主题参数以分组卡片呈现，避免密集表单墙。</div>
+        </section>
+
+        <!-- 站点设置 -->
+        <section class="view" data-view-panel="settings" aria-label="站点设置">
+          <header class="page-head">
+            <div>
+              <p class="eyebrow">系统</p>
+              <h1 class="page-title serif">站点设置</h1>
+              <p class="page-desc">标题、描述、评论与安全相关配置。</p>
+            </div>
+          </header>
+          <div class="panel empty-panel">设置页将采用 Apple 偏好设置式分组列表。</div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- 留言抽屉 -->
+  <div class="drawer" id="message-drawer" hidden>
+    <div class="drawer-backdrop" data-close-drawer></div>
+    <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+      <header class="drawer-head">
+        <div>
+          <p class="eyebrow">对话</p>
+          <h2 class="serif" id="drawer-title">留言详情</h2>
+        </div>
+        <button class="icon-btn" type="button" data-close-drawer aria-label="关闭">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+
+      <div class="drawer-body">
+        <div class="drawer-meta">
+          <div class="drawer-author">
+            <div class="avatar" id="drawer-avatar">访</div>
+            <div>
+              <div class="user-name" id="drawer-author">访客</div>
+              <div class="user-role" id="drawer-time">时间</div>
+            </div>
+          </div>
+          <div class="status-row" id="drawer-status-row" aria-label="留言状态">
+            <button class="status-chip" type="button" data-status="pending">待审</button>
+            <button class="status-chip" type="button" data-status="approved">通过</button>
+            <button class="status-chip" type="button" data-status="featured">精选</button>
+            <button class="status-chip" type="button" data-status="spam">垃圾</button>
+          </div>
+        </div>
+
+        <div class="thread" id="drawer-thread"></div>
+
+        <form class="reply-form" id="reply-form">
+          <label class="sr-only" for="reply-input">回复内容</label>
+          <textarea id="reply-input" rows="4" placeholder="写下回复…"></textarea>
+          <div class="reply-actions">
+            <span class="muted" id="reply-hint">回复将出现在对话中</span>
+            <button class="btn primary" type="submit">发送回复</button>
+          </div>
+        </form>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 命令面板 -->
+  <div class="palette" id="palette" hidden>
+    <div class="palette-backdrop" data-close-palette></div>
+    <div class="palette-panel" role="dialog" aria-modal="true" aria-label="命令面板">
+      <div class="palette-input-wrap">
+        <span class="search-icon" aria-hidden="true"></span>
+        <input id="palette-input" type="text" placeholder="搜索页面、文章，或输入命令…" autocomplete="off" />
+        <kbd>Esc</kbd>
+      </div>
+      <ul class="palette-list" id="palette-list">
+        <li><button type="button" data-view="dashboard">打开仪表盘</button></li>
+        <li><button type="button" data-view="posts">打开文章列表</button></li>
+        <li><button type="button" data-view="editor">撰写新文章</button></li>
+        <li><button type="button" data-view="messages">查看留言</button></li>
+        <li><button type="button" data-view="taxonomies">分类 / 标签</button></li>
+        <li><button type="button" data-view="settings">站点设置</button></li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="preview.js"></script>
+</body>
+</html>

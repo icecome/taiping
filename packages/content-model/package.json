@@ -6,26 +6,15 @@
   "exports": {
     ".": "./src/index.ts",
     "./post": "./src/post.ts",
-    "./moment": "./src/moment.ts",
     "./comment": "./src/comment.ts",
+    "./moment": "./src/moment.ts",
     "./settings": "./src/settings.ts",
-    "./api": "./src/api.ts",
-    "./term": "./src/term.ts",
-    "./media": "./src/media.ts",
-    "./auth": "./src/auth.ts",
-    "./url": "./src/url.ts",
-    "./mirror": "./src/mirror.ts"
+    "./url": "./src/url.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@taiping/shared-utils": "workspace:*",
-    "zod": "^3.24.1"
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "typescript": "^5.7.2"
   }
 }

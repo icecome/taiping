@@ -1,6 +1,0 @@
-packages:
-  - "packages/*"
-  - "apps/*"
-  - "themes/*"
-  # 本地 vendored 编辑器，避免 CI 走 git+ssh 拉 icecome/overtype
-  - "vendor/overtypeplus"

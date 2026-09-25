@@ -1,64 +1,39 @@
-# taiping_blog
+# 太平 Tai-Ping
 
-边缘运行时内的轻量博客管理系统：D1 为主存储，请求期 TSX 渲染，复刻拙素主题；同一 Worker 托管后台 SPA。
+轻量级博客系统（Cloudflare Workers / D1 / Hono）。
 
 ## 结构
 
-```
-packages/content-model   契约层（zod schema / 类型 / API 信封）
-packages/renderer        markdown 管线与派生数据
-packages/shared-utils    日期 / slug / 阅读时长等纯函数
-themes/zhuosu            拙素主题 TSX + 样式脚本
-apps/edge                Cloudflare Worker（前台渲染 + 管理/公开 API）
-apps/studio              后台 React SPA
-docs/                    架构与技术方案
-```
+- `apps/web` — Worker 主应用（API + 前台 SSR）
+- `console` — Vue3 后台 SPA
+- `packages/content-model` — 内容模型与 URL 安全工具
+- `packages/shared-utils` — 日期/阅读时长等工具
+- `themes/zhuosu` — 默认前台主题
+- `migrations` — D1 SQL 迁移
 
-## 快速开始
+## 开发
 
-```powershell
-pnpm install
-pnpm -F @taiping/content-model test
-pnpm -F @taiping/renderer test
-pnpm -F @taiping/shared-utils test
-pnpm typecheck
+```bash
+npm install
+npm run typecheck
+npm run dev -w @taiping/web
 ```
 
-本地运行边缘应用前，复制并填写：
+初始化管理员（首次）：
 
-```powershell
-Copy-Item apps/edge/.dev.vars.example apps/edge/.dev.vars
-pnpm db:migrate:local
-pnpm -F @taiping/edge dev
+```bash
+curl -X POST http://127.0.0.1:8787/api/setup \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"admin","email":"admin@example.com","password":"change-me"}'
 ```
 
-后台开发（另开终端）：
+本地迁移：
 
-```powershell
-pnpm -F @taiping/studio dev
+```bash
+npm run db:migrate:local -w @taiping/web
 ```
 
-- 前台：http://127.0.0.1:8787/
-- 后台：http://127.0.0.1:8787/admin/ 或 Vite 代理下的 http://127.0.0.1:5173/
+## 设计文档
 
-## 约定摘要
-
-- 统一响应信封：`{ok:true,data}` / `{ok:false,error:{code,message,details}}`
-- 管理接口挂载 `/api/admin/*`，鉴权中间件按前缀统一处理
-- 环境变量在 `apps/edge/src/env.ts` 集中声明
-- KV / R2 为可选绑定，首期仅 D1 必需
-- 鉴权：账号口令存于 D1 `admins` 表（PBKDF2 哈希）+ 签名会话 Cookie；
-  `ADMIN_USERNAME`/`ADMIN_PASSWORD` 仅用于首次播种，播种后可在后台「设置 → 账号」改口令
-- 忘记口令：在「设置 → 账号」配置恢复邮箱后，可经邮件链接自助重置
-- 登录防护：同 IP 15 分钟内失败 5 次触发限流，同账号连续失败 10 次锁定
-- 后台入口路径可由 `ADMIN_PATH` 调整（默认 `/admin`，改动后旧路径即失效）
-- 评论回复：后台可回复并邮件通知访客；配置 `INBOUND_REPLY_DOMAIN` 与
-  `RESEND_WEBHOOK_SECRET` 后，访客直接回信亦落入同一对话时间线
-- 说说列表承载内容；留言表单组件统一；归档默认按年；媒体首期外链 URL
-
-## 部署
-
-```powershell
-# 配置 wrangler 中的 D1 database_id 与 secrets 后
-pnpm deploy
-```
+- `01-typecho-halo-technical-analysis.md`
+- `02-lightweight-blog-architecture-design.md`

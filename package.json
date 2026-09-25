@@ -1,29 +1,29 @@
 {
   "name": "taiping-blog",
-  "private": true,
   "version": "0.1.0",
-  "packageManager": "pnpm@9.15.0",
+  "private": true,
+  "type": "module",
+  "description": "太平 Tai-Ping — lightweight blog on Cloudflare Workers",
+  "workspaces": [
+    "packages/*",
+    "themes/*",
+    "console",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @taiping/web",
+    "build": "npm run build -w @taiping/web && npm run build -w @taiping/console",
+    "typecheck": "npm run typecheck -w @taiping/content-model && npm run typecheck -w @taiping/shared-utils && npm run typecheck -w @taiping/web && npm run typecheck -w @taiping/theme-zhuosu",
+    "deploy": "npm run deploy -w @taiping/web"
+  },
   "engines": {
     "node": ">=20"
   },
-  "scripts": {
-    "dev": "concurrently -n edge,studio -c cyan,magenta \"pnpm -F @taiping/edge dev\" \"pnpm -F @taiping/studio dev\"",
-    "build": "pnpm -F @taiping/studio build && pnpm -F @taiping/edge build",
-    "deploy": "pnpm build && pnpm -F @taiping/edge deploy",
-    "typecheck": "pnpm -r typecheck",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "test": "pnpm -r test",
-    "theme:sync": "node scripts/sync-theme.mjs",
-    "theme:check": "node scripts/sync-theme.mjs --check",
-    "db:migrate:local": "pnpm -F @taiping/edge db:migrate:local"
-  },
-  "devDependencies": {
-    "@types/node": "^22.10.2",
-    "concurrently": "^9.1.0",
-    "eslint": "^9.17.0",
-    "prettier": "^3.4.2",
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+  "allowScripts": {
+    "workerd@1.20250718.0": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.17.19": true,
+    "@esbuild/win32-x64@0.25.12": true,
+    "@esbuild/win32-x64@0.17.19": true
   }
 }

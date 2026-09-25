@@ -1,3 +1,0 @@
-$root = "C:\opt\workstations\project\blogs\taiping_blog"
-Set-Location $root
-pnpm -F @taiping/edge dev

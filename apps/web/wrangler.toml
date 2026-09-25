@@ -1,0 +1,23 @@
+name = "taiping-blog"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+APP_ENV = "development"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "taiping-blog"
+database_id = "LOCAL_PLACEHOLDER"
+migrations_dir = "../../migrations"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "LOCAL_PLACEHOLDER"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# 生产环境请通过 `wrangler secret put` 注入 SESSION_SECRET 等敏感配置

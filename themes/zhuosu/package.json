@@ -12,8 +12,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@taiping/content-model": "workspace:*",
-    "@taiping/shared-utils": "workspace:*",
+    "@taiping/content-model": "*",
+    "@taiping/shared-utils": "*",
     "hono": "^4.6.14"
   },
   "devDependencies": {
