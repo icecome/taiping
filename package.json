@@ -1,29 +1,43 @@
 {
   "name": "taiping-blog",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "太平 Tai-Ping — lightweight blog on Cloudflare Workers",
-  "workspaces": [
-    "packages/*",
-    "themes/*",
-    "console",
-    "apps/web"
-  ],
-  "scripts": {
-    "dev": "npm run dev -w @taiping/web",
-    "build": "npm run build -w @taiping/web && npm run build -w @taiping/console",
-    "typecheck": "npm run typecheck -w @taiping/content-model && npm run typecheck -w @taiping/shared-utils && npm run typecheck -w @taiping/web && npm run typecheck -w @taiping/theme-zhuosu",
-    "deploy": "npm run deploy -w @taiping/web"
-  },
+  "description": "太平 CMS — 运行在 Cloudflare Workers 上的博客内容管理系统（Hono + D1 服务端，React 后台，JSX 主题前台）",
+  "license": "MIT",
+  "packageManager": "pnpm@10.11.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
-  "allowScripts": {
-    "workerd@1.20250718.0": true,
-    "esbuild@0.25.12": true,
-    "esbuild@0.17.19": true,
-    "@esbuild/win32-x64@0.25.12": true,
-    "@esbuild/win32-x64@0.17.19": true
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "workerd", "sharp"]
+  },
+  "scripts": {
+    "dev": "concurrently -n worker,console -c blue,magenta \"pnpm dev:worker\" \"pnpm dev:console\"",
+    "dev:worker": "wrangler dev --port 8787",
+    "dev:console": "pnpm --filter @taiping/console dev",
+    "build": "pnpm build:console && pnpm build:worker",
+    "build:console": "pnpm --filter @taiping/console build",
+    "build:worker": "wrangler deploy --dry-run --outdir dist/worker",
+    "preview": "pnpm build:console && wrangler dev --port 8787",
+    "typecheck": "tsc -p apps/server/tsconfig.json --noEmit && pnpm --filter @taiping/console typecheck",
+    "test": "vitest run --config vitest.config.ts && vitest run --config vitest.workers.config.ts",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:workers": "vitest run --config vitest.workers.config.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply DB --local --persist-to .wrangler/state",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:seed": "wrangler d1 execute DB --local --persist-to .wrangler/state --file=./apps/server/seed/seed.sql",
+    "deploy": "pnpm build && wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.7",
+    "@cloudflare/workers-types": "^5.20261026.1",
+    "@types/node": "^24.19.2",
+    "concurrently": "^9.2.5",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12",
+    "wrangler": "^4.152.0"
   }
 }

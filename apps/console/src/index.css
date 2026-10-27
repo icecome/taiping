@@ -1,0 +1,281 @@
+@import "tailwindcss";
+
+/* 暗色模式由 html.dark 驱动（手动切换），而不是只跟随系统：
+   后台使用者经常在白天把系统设为暗色又要在亮色下校对排版。 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 设计令牌：中性灰底 + 单一强调色（赭石 #b4552d）。
+   亮暗两套变量结构完全一致，切换时只换值，不换组件类名。 */
+:root {
+  color-scheme: light;
+  --tb-canvas: #f5f4f2;
+  --tb-surface: #ffffff;
+  --tb-surface-sunken: #faf9f7;
+  --tb-surface-hover: #f2f0ed;
+  --tb-line: #e3ded8;
+  --tb-line-strong: #cdc6bd;
+  /* 表单控件边框单独一档：WCAG 1.4.11 要求可辨识的控件边界对底色达到 3:1，
+     --tb-line-strong 只有 1.69:1，做分割线没问题、做输入框边框不达标。 */
+  --tb-control-line: #949089;
+  --tb-fg: #232120;
+  --tb-fg-muted: #6b6560;
+  /* 12px 小字要 4.5:1，原来的 #98918a 只有 3.11:1（白底）。 */
+  --tb-fg-subtle: #736b65;
+  --tb-accent: #b4552d;
+  --tb-accent-hover: #9a4623;
+  --tb-accent-soft: #f3e5dd;
+  /* 叠在 accent-soft 上的文字用这一档：直接用 #b4552d 只有 3.99:1。 */
+  --tb-accent-strong: #8f3f1e;
+  --tb-accent-fg: #ffffff;
+  --tb-ok: #2b7048;
+  --tb-ok-soft: #e4f1e8;
+  --tb-warn: #7d5708;
+  --tb-warn-soft: #f7eed8;
+  --tb-danger: #ad3129;
+  --tb-danger-soft: #f8e5e3;
+  --tb-info: #37628f;
+  --tb-info-soft: #e5ecf4;
+}
+
+.dark {
+  color-scheme: dark;
+  --tb-canvas: #141312;
+  --tb-surface: #1c1b19;
+  --tb-surface-sunken: #181716;
+  --tb-surface-hover: #262421;
+  --tb-line: #302d2a;
+  --tb-line-strong: #453f3a;
+  --tb-control-line: #736b63;
+  --tb-fg: #eae6e1;
+  --tb-fg-muted: #a49d95;
+  --tb-fg-subtle: #918a82;
+  --tb-accent: #c8683c;
+  --tb-accent-hover: #d97c50;
+  --tb-accent-soft: #3a2419;
+  --tb-accent-strong: #d97c50;
+  --tb-accent-fg: #1a1512;
+  --tb-ok: #6bbd8b;
+  --tb-ok-soft: #1e2b23;
+  --tb-warn: #d7ab5a;
+  --tb-warn-soft: #2e2718;
+  --tb-danger: #d9766c;
+  --tb-danger-soft: #2f1f1d;
+  --tb-info: #7ba7d4;
+  --tb-info-soft: #1d262f;
+}
+
+@theme inline {
+  --color-canvas: var(--tb-canvas);
+  --color-surface: var(--tb-surface);
+  --color-sunken: var(--tb-surface-sunken);
+  --color-hover: var(--tb-surface-hover);
+  --color-line: var(--tb-line);
+  --color-line-strong: var(--tb-line-strong);
+  --color-control-line: var(--tb-control-line);
+  --color-fg: var(--tb-fg);
+  --color-muted: var(--tb-fg-muted);
+  --color-subtle: var(--tb-fg-subtle);
+  --color-accent: var(--tb-accent);
+  --color-accent-hover: var(--tb-accent-hover);
+  --color-accent-soft: var(--tb-accent-soft);
+  --color-accent-strong: var(--tb-accent-strong);
+  --color-accent-fg: var(--tb-accent-fg);
+  --color-ok: var(--tb-ok);
+  --color-ok-soft: var(--tb-ok-soft);
+  --color-warn: var(--tb-warn);
+  --color-warn-soft: var(--tb-warn-soft);
+  --color-danger: var(--tb-danger);
+  --color-danger-soft: var(--tb-danger-soft);
+  --color-info: var(--tb-info);
+  --color-info-soft: var(--tb-info-soft);
+
+  /* 不写 "Inter"：字体没随包引入，写了也只是在字体栈里留一个永远不会命中的名字。 */
+  --font-sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  /* 窗口滚动条出现/消失会让居中容器与右侧工具栏水平跳动约 10px。
+     stable 让浏览器始终预留滚动条槽位，页面不再左右抖。 */
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--tb-canvas);
+    color: var(--tb-fg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--tb-accent);
+    outline-offset: 1px;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--tb-control-line);
+    border: 2px solid transparent;
+    background-clip: content-box;
+    border-radius: 6px;
+  }
+}
+
+/* 尊重系统设置：骨架屏的脉冲与所有过渡都收敛为"没有动画"，
+   信息本身不受影响（进度靠静态文字表达）。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  /* Markdown 预览是后台唯一会注入 HTML 的地方（先经 DOMPurify）。
+     这里只给最低限度的排版，不做主题级美化。 */
+  .tb-markdown {
+    color: var(--tb-fg);
+    word-break: break-word;
+  }
+
+  .tb-markdown > *:first-child {
+    margin-top: 0;
+  }
+
+  .tb-markdown h1,
+  .tb-markdown h2,
+  .tb-markdown h3,
+  .tb-markdown h4 {
+    margin: 1.4em 0 0.6em;
+    line-height: 1.3;
+    font-weight: 600;
+  }
+
+  .tb-markdown h1 {
+    font-size: 1.5em;
+  }
+
+  .tb-markdown h2 {
+    font-size: 1.28em;
+  }
+
+  .tb-markdown h3 {
+    font-size: 1.12em;
+  }
+
+  .tb-markdown p,
+  .tb-markdown ul,
+  .tb-markdown ol,
+  .tb-markdown blockquote,
+  .tb-markdown pre,
+  .tb-markdown table {
+    margin: 0.75em 0;
+  }
+
+  .tb-markdown ul,
+  .tb-markdown ol {
+    padding-left: 1.4em;
+  }
+
+  .tb-markdown ul {
+    list-style: disc;
+  }
+
+  .tb-markdown ol {
+    list-style: decimal;
+  }
+
+  .tb-markdown blockquote {
+    border-left: 3px solid var(--tb-line-strong);
+    padding-left: 0.8em;
+    color: var(--tb-fg-muted);
+  }
+
+  .tb-markdown code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--tb-surface-hover);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
+
+  .tb-markdown pre {
+    background: var(--tb-surface-sunken);
+    border: 1px solid var(--tb-line);
+    border-radius: 4px;
+    padding: 0.75em;
+    overflow-x: auto;
+  }
+
+  .tb-markdown pre code {
+    background: transparent;
+    padding: 0;
+  }
+
+  .tb-markdown table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .tb-markdown th,
+  .tb-markdown td {
+    border: 1px solid var(--tb-line);
+    padding: 0.4em 0.6em;
+    text-align: left;
+  }
+
+  .tb-markdown img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .tb-markdown a {
+    color: var(--tb-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .tb-markdown hr {
+    border: none;
+    border-top: 1px solid var(--tb-line);
+    margin: 1.4em 0;
+  }
+}

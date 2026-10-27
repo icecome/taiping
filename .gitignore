@@ -4,5 +4,7 @@ dist/
 .dev.vars
 *.log
 .DS_Store
-apps/web/public/console/
-apps/web/dist/
+.tmp/
+apps/console/dist/
+.old/
+coverage/

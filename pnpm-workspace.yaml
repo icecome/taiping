@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+
+# workerd 与 esbuild 需要执行安装脚本才能落地本地二进制；
+# 不批准的话 `wrangler dev` 与 vitest 的 Workers 测试池会直接起不来。
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
